@@ -2,7 +2,7 @@
   "name": "mac-optimizer",
   "display_name": "Mac Optimizer",
   "description": "Diagnose macOS storage, cache, logs, startup items, developer-tool residue, and routine maintenance needs with a diagnosis-first workflow, dry-run previews, risk-ranked recommendations, safe cleanup scripts, rollback guidance, and high-risk manual review boundaries.",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "author": "Chuluu",
   "copyright": "Copyright (c) 2026 Chuluu",
   "maintainer": {
@@ -73,6 +73,7 @@
     "risk_model": "references/risk-model.md",
     "diagnostic_report_contract": "references/diagnostic-report-contract.md",
     "report_review_checklist": "references/report-review-checklist.md",
+    "release_guide": "references/release-guide.md",
     "distribution": "references/distribution.md"
   },
   "scripts": [
@@ -115,6 +116,11 @@
       "name": "package_runtime_skill",
       "path": "scripts/package_runtime_skill.py",
       "description": "Creates a lightweight runtime ZIP for team and partner installation in compatible agent tools."
+    },
+    {
+      "name": "check_release_ready",
+      "path": "scripts/check_release_ready.py",
+      "description": "Checks version consistency, required release assets, and publishing metadata before tagging a release."
     }
   ],
   "safety": {

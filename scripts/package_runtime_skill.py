@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import json
 import zipfile
 from pathlib import Path
 
@@ -69,12 +70,24 @@ def add_path(zf: zipfile.ZipFile, path: Path) -> None:
                 zf.write(file_path, file_path.relative_to(ROOT).as_posix())
 
 
-def main() -> None:
-    DIST_DIR.mkdir(exist_ok=True)
-    with zipfile.ZipFile(PACKAGE, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+def skill_version() -> str:
+    with (ROOT / "skill.json").open(encoding="utf-8") as fh:
+        return json.load(fh)["version"]
+
+
+def create_package(package: Path) -> None:
+    with zipfile.ZipFile(package, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         for item in INCLUDE_PATHS:
             add_path(zf, ROOT / item)
+
+
+def main() -> None:
+    DIST_DIR.mkdir(exist_ok=True)
+    versioned_package = DIST_DIR / f"mac-optimizer-skill-{skill_version()}.zip"
+    create_package(PACKAGE)
+    create_package(versioned_package)
     print(f"Created {PACKAGE}")
+    print(f"Created {versioned_package}")
 
 
 if __name__ == "__main__":

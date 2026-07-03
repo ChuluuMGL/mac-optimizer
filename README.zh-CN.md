@@ -8,13 +8,13 @@
 中文 | [English](README.md)
 
 [![AI Skill](https://img.shields.io/badge/AI%20Skill-mac--optimizer-0E5E43)](./SKILL.md)
-[![Version](https://img.shields.io/badge/version-0.1.3-green)](./skill.json)
+[![Version](https://img.shields.io/badge/version-0.1.4-green)](./skill.json)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](./LICENSE)
 [![by Chuluu](https://img.shields.io/badge/by-Chuluu-0E5E43)](https://github.com/ChuluuMGL)
 [![Workflow](https://img.shields.io/badge/workflow-diagnosis--first-purple)](./SKILL.md)
 [![Safety](https://img.shields.io/badge/safety-dry--run--first-blue)](./references/safety-policy.md)
 
-[GitHub 仓库](https://github.com/ChuluuMGL/mac-optimizer) | [合成任务输入](./examples/) | [脱敏示例报告](./examples/basic-maintenance/sample-report.md) | [报告审阅清单](./references/report-review-checklist.md) | [CHANGELOG.md](./CHANGELOG.md) | [测试矩阵](./TESTING.md) | [License](./LICENSE)
+[GitHub 仓库](https://github.com/ChuluuMGL/mac-optimizer) | [合成任务输入](./examples/) | [脱敏示例报告](./examples/basic-maintenance/sample-report.md) | [报告审阅清单](./references/report-review-checklist.md) | [发布指南](./references/release-guide.md) | [CHANGELOG.md](./CHANGELOG.md) | [测试矩阵](./TESTING.md) | [License](./LICENSE)
 
 ## 产品定位
 
@@ -86,6 +86,7 @@ python3 ./scripts/package_runtime_skill.py
 ```
 
 输出文件会生成在 `dist/mac-optimizer-skill.zip`。
+同时也会生成版本化文件，例如 `dist/mac-optimizer-skill-0.1.4.zip`。
 
 ### 安装与兼容性
 
@@ -119,6 +120,7 @@ python3 ./scripts/package_runtime_skill.py
 - `05-维护计划/monthly.sh`: 月度检查加维护编排。
 - `examples/basic-maintenance/sample-report.md`: 脱敏示例诊断报告。
 - `references/report-review-checklist.md`: 报告审阅和风险判断清单。
+- `references/release-guide.md`: 发版前检查、打 tag 和 Release 上传说明。
 
 ## 安全边界
 

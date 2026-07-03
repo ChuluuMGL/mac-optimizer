@@ -285,10 +285,13 @@ assert_skill_package_metadata() {
     "references/risk-model.md"
     "references/diagnostic-report-contract.md"
     "references/report-review-checklist.md"
+    "references/release-guide.md"
     "references/distribution.md"
     "scripts/install.sh"
     "scripts/package_runtime_skill.py"
+    "scripts/check_release_ready.py"
     ".github/workflows/validate.yml"
+    ".github/workflows/release.yml"
     "examples/basic-maintenance/sample-report.md"
   )
 
@@ -317,7 +320,7 @@ assert_skill_package_metadata() {
   fi
 
   if has_pattern 'license-MIT' README.md README.zh-CN.md \
-    && has_pattern 'version-0\.1\.3' README.md README.zh-CN.md \
+    && has_pattern 'version-0\.1\.4' README.md README.zh-CN.md \
     && has_pattern 'by-Chuluu' README.md README.zh-CN.md \
     && has_pattern 'Copyright \(c\) 2026 Chuluu' NOTICE LICENSE \
     && has_pattern 'Published on GitHub by ChuluuMGL' NOTICE \
@@ -333,6 +336,7 @@ assert_skill_package_metadata() {
     && has_pattern '"changelog": "CHANGELOG.md"' skill.json \
     && has_pattern '"sample_report": "examples/basic-maintenance/sample-report.md"' skill.json \
     && has_pattern '"report_review_checklist": "references/report-review-checklist.md"' skill.json \
+    && has_pattern '"release_guide": "references/release-guide.md"' skill.json \
     && has_pattern '"tested":' skill.json \
     && has_pattern '"expected":' skill.json; then
     pass "skill.json follows Chuluu-style publishing metadata"
@@ -351,13 +355,23 @@ assert_skill_package_metadata() {
   if has_pattern 'CHANGELOG.md' README.md README.zh-CN.md \
     && has_pattern 'sample-report.md' README.md README.zh-CN.md \
     && has_pattern 'report-review-checklist.md' README.md README.zh-CN.md \
-    && has_pattern '0\.1\.3' CHANGELOG.md \
+    && has_pattern 'release-guide.md' README.md README.zh-CN.md \
+    && has_pattern '0\.1\.4' CHANGELOG.md \
     && has_pattern '脱敏示例' examples/basic-maintenance/sample-report.md \
-    && has_pattern '高风险' references/report-review-checklist.md; then
-    pass "release notes, sample report, and report review checklist are linked"
+    && has_pattern '高风险' references/report-review-checklist.md \
+    && has_pattern 'v0\.1\.4' references/release-guide.md; then
+    pass "release notes, sample report, report review checklist, and release guide are linked"
   else
-    fail "README, metadata, changelog, sample report, and review checklist must stay linked"
+    fail "README, metadata, changelog, sample report, review checklist, and release guide must stay linked"
   fi
+
+  if python3 scripts/check_release_ready.py >/tmp/mac-opt-release-ready.$$ 2>&1; then
+    pass "release readiness check passes"
+  else
+    cat /tmp/mac-opt-release-ready.$$
+    fail "release readiness check must pass"
+  fi
+  rm -f /tmp/mac-opt-release-ready.$$
 
   if list_repo_pattern 'i[P]hone|[i]OS' >/tmp/mac-opt-phone-topic.$$ 2>/dev/null; then
     cat /tmp/mac-opt-phone-topic.$$
@@ -369,12 +383,26 @@ assert_skill_package_metadata() {
   fi
 }
 
+assert_runtime_package_outputs() {
+  rm -rf dist
+  if python3 scripts/package_runtime_skill.py >/tmp/mac-opt-package.$$ 2>&1 \
+    && [[ -f "dist/mac-optimizer-skill.zip" ]] \
+    && [[ -f "dist/mac-optimizer-skill-0.1.4.zip" ]]; then
+    pass "runtime package creates stable and versioned archives"
+  else
+    cat /tmp/mac-opt-package.$$
+    fail "runtime package must create stable and versioned archives"
+  fi
+  rm -f /tmp/mac-opt-package.$$
+}
+
 assert_file "lib/common.sh"
 assert_file "README.md"
 assert_file "00-系统概览/README.md"
 assert_file "04-自动化脚本/verify.sh"
 assert_file "04-自动化脚本/rollback.sh"
 assert_skill_package_metadata
+assert_runtime_package_outputs
 
 assert_no_script_hardcoded_install_path
 assert_common_options_present "04-自动化脚本/one-click-optimization.sh"

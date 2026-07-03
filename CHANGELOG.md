@@ -2,6 +2,13 @@
 
 All notable changes to Mac Optimizer Skill are tracked here.
 
+## 0.1.4 - 2026-07-03
+
+- Added a release-readiness checker for version consistency and required publishing assets.
+- Added a tag-based GitHub Release workflow that packages runtime ZIP artifacts.
+- Updated runtime packaging to produce both stable and versioned archive names.
+- Added a release guide for `v0.1.4` tagging and upload flow.
+
 ## 0.1.3 - 2026-07-03
 
 - Added a sanitized sample diagnostic report for public review.
