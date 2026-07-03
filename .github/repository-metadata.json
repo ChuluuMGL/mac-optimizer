@@ -1,0 +1,16 @@
+{
+  "repository": "ChuluuMGL/mac-optimizer",
+  "description": "Diagnosis-first macOS maintenance Agent Skill for safe diagnostics, dry-run cleanup previews, and risk-ranked recommendations.",
+  "homepage": "https://github.com/ChuluuMGL/mac-optimizer#readme",
+  "topics": [
+    "agent-skills",
+    "cleanup",
+    "diagnosis-first",
+    "dry-run",
+    "mac",
+    "macos",
+    "optimizer",
+    "skill",
+    "system-maintenance"
+  ]
+}

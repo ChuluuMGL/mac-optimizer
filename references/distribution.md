@@ -60,3 +60,19 @@ https://github.com/ChuluuMGL/mac-optimizer
 ```
 
 Release metadata should stay synchronized across `README.md`, `README.zh-CN.md`, `NOTICE`, `skill.json`, and `package.json`.
+
+## GitHub About
+
+The repository sidebar metadata is documented in `.github/repository-metadata.json`.
+
+Current public description:
+
+```text
+Diagnosis-first macOS maintenance Agent Skill for safe diagnostics, dry-run cleanup previews, and risk-ranked recommendations.
+```
+
+Recommended topics:
+
+```text
+agent-skills, cleanup, diagnosis-first, dry-run, mac, macos, optimizer, skill, system-maintenance
+```

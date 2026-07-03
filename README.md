@@ -14,7 +14,11 @@
 [![Workflow](https://img.shields.io/badge/workflow-diagnosis--first-purple)](./SKILL.md)
 [![Safety](https://img.shields.io/badge/safety-dry--run--first-blue)](./references/safety-policy.md)
 
-[GitHub Repository](https://github.com/ChuluuMGL/mac-optimizer) | [Workflow Fixtures](./examples/) | [Sample Report](./examples/basic-maintenance/sample-report.md) | [Review Checklist](./references/report-review-checklist.md) | [Release Guide](./references/release-guide.md) | [Changelog](./CHANGELOG.md) | [Testing Matrix](./TESTING.md) | [License](./LICENSE)
+[GitHub Repository](https://github.com/ChuluuMGL/mac-optimizer) | [Repository Metadata](./.github/repository-metadata.json) | [Workflow Fixtures](./examples/) | [Sample Report](./examples/basic-maintenance/sample-report.md) | [Review Checklist](./references/report-review-checklist.md) | [Release Guide](./references/release-guide.md) | [Changelog](./CHANGELOG.md) | [Testing Matrix](./TESTING.md) | [License](./LICENSE)
+
+## About
+
+Diagnosis-first macOS maintenance Agent Skill for safe diagnostics, dry-run cleanup previews, and risk-ranked recommendations.
 
 ## What It Does
 

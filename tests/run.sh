@@ -290,6 +290,7 @@ assert_skill_package_metadata() {
     "scripts/install.sh"
     "scripts/package_runtime_skill.py"
     "scripts/check_release_ready.py"
+    ".github/repository-metadata.json"
     ".github/workflows/validate.yml"
     ".github/workflows/release.yml"
     "examples/basic-maintenance/sample-report.md"
@@ -302,6 +303,7 @@ assert_skill_package_metadata() {
 
   assert_json_valid "skill.json"
   assert_json_valid "package.json"
+  assert_json_valid ".github/repository-metadata.json"
 
   if has_pattern '^name: mac-optimizer$' SKILL.md \
     && has_pattern '^description: Use when' SKILL.md \
@@ -317,6 +319,15 @@ assert_skill_package_metadata() {
     pass "skill metadata and readmes include repository and diagnosis-first positioning"
   else
     fail "skill metadata/readmes must describe the shareable repository and diagnosis-first positioning"
+  fi
+
+  if has_pattern 'Diagnosis-first macOS maintenance Agent Skill' .github/repository-metadata.json README.md \
+    && has_pattern '"homepage": "https://github.com/ChuluuMGL/mac-optimizer#readme"' .github/repository-metadata.json \
+    && has_pattern '"agent-skills"' .github/repository-metadata.json \
+    && has_pattern '"system-maintenance"' .github/repository-metadata.json; then
+    pass "repository About metadata is documented"
+  else
+    fail "repository About metadata must include description, homepage, and topics"
   fi
 
   if has_pattern 'license-MIT' README.md README.zh-CN.md \

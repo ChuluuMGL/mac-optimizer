@@ -14,7 +14,11 @@
 [![Workflow](https://img.shields.io/badge/workflow-diagnosis--first-purple)](./SKILL.md)
 [![Safety](https://img.shields.io/badge/safety-dry--run--first-blue)](./references/safety-policy.md)
 
-[GitHub 仓库](https://github.com/ChuluuMGL/mac-optimizer) | [合成任务输入](./examples/) | [脱敏示例报告](./examples/basic-maintenance/sample-report.md) | [报告审阅清单](./references/report-review-checklist.md) | [发布指南](./references/release-guide.md) | [CHANGELOG.md](./CHANGELOG.md) | [测试矩阵](./TESTING.md) | [License](./LICENSE)
+[GitHub 仓库](https://github.com/ChuluuMGL/mac-optimizer) | [仓库元信息](./.github/repository-metadata.json) | [合成任务输入](./examples/) | [脱敏示例报告](./examples/basic-maintenance/sample-report.md) | [报告审阅清单](./references/report-review-checklist.md) | [发布指南](./references/release-guide.md) | [CHANGELOG.md](./CHANGELOG.md) | [测试矩阵](./TESTING.md) | [License](./LICENSE)
+
+## About
+
+面向 macOS 的诊断优先维护 Agent Skill，用于安全生成诊断报告、预览清理动作，并按风险等级给出可选优化建议。
 
 ## 产品定位
 
