@@ -15,6 +15,48 @@ pass() {
   printf 'PASS: %s\n' "$1"
 }
 
+has_pattern() {
+  local pattern="$1"
+  shift
+
+  if command -v rg >/dev/null 2>&1; then
+    rg -q "$pattern" "$@"
+  else
+    grep -Eq "$pattern" "$@"
+  fi
+}
+
+list_pattern() {
+  local pattern="$1"
+  shift
+
+  if command -v rg >/dev/null 2>&1; then
+    rg -n "$pattern" "$@"
+  else
+    grep -En "$pattern" "$@"
+  fi
+}
+
+list_shell_pattern() {
+  local pattern="$1"
+
+  if command -v rg >/dev/null 2>&1; then
+    rg -n "$pattern" --glob '*.sh' --glob '!tests/**' .
+  else
+    find . -name '*.sh' -not -path './tests/*' -print0 | xargs -0 grep -En "$pattern"
+  fi
+}
+
+list_markdown_pattern() {
+  local pattern="$1"
+
+  if command -v rg >/dev/null 2>&1; then
+    rg -n "$pattern" --glob '*.md' .
+  else
+    find . -name '*.md' -print0 | xargs -0 grep -En "$pattern"
+  fi
+}
+
 assert_file() {
   local path="$1"
   if [[ -f "$path" ]]; then
@@ -25,7 +67,7 @@ assert_file() {
 }
 
 assert_no_script_hardcoded_install_path() {
-  if rg -n 'Mac-Optimization-System' --glob '*.sh' --glob '!tests/**' . >/tmp/mac-opt-hardcoded-paths.$$ 2>/dev/null; then
+  if list_shell_pattern 'Mac-Optimization-System' >/tmp/mac-opt-hardcoded-paths.$$ 2>/dev/null; then
     cat /tmp/mac-opt-hardcoded-paths.$$
     rm -f /tmp/mac-opt-hardcoded-paths.$$
     fail "shell scripts must not hard-code ~/Mac-Optimization-System"
@@ -37,7 +79,7 @@ assert_no_script_hardcoded_install_path() {
 
 assert_common_options_present() {
   local script="$1"
-  if ! rg -q 'parse_common_args' "$script"; then
+  if ! has_pattern 'parse_common_args' "$script"; then
     fail "$script must use common option parsing"
     return
   fi
@@ -53,7 +95,7 @@ assert_common_options_present() {
 
 assert_safe_dry_run_execution() {
   local script="$1"
-  if ! rg -q 'parse_common_args' "$script"; then
+  if ! has_pattern 'parse_common_args' "$script"; then
     fail "$script cannot be dry-run tested yet"
     return
   fi
@@ -109,7 +151,7 @@ assert_optimizer_requires_diagnostic() {
     return
   fi
 
-  if rg -q '请先运行诊断' /tmp/mac-opt-no-diagnostic.$$; then
+  if has_pattern '请先运行诊断' /tmp/mac-opt-no-diagnostic.$$; then
     pass "$script requires diagnostic report first"
   else
     cat /tmp/mac-opt-no-diagnostic.$$
@@ -135,7 +177,7 @@ assert_diagnostic_report_has_risk_recommendations() {
     return
   }
 
-  if rg -q 'command not found' /tmp/mac-opt-check.$$; then
+  if has_pattern 'command not found' /tmp/mac-opt-check.$$; then
     cat /tmp/mac-opt-check.$$
     rm -rf "$tmp" /tmp/mac-opt-check.$$
     fail "full-check report generation must not execute markdown inline code"
@@ -145,11 +187,11 @@ assert_diagnostic_report_has_risk_recommendations() {
   local report
   report="$(find "$tmp/logs" -name 'check-report-*.md' -print | head -1)"
   if [[ -n "$report" ]] \
-    && rg -q '风险分级优化建议' "$report" \
-    && rg -q '低风险' "$report" \
-    && rg -q '中风险' "$report" \
-    && rg -q '高风险' "$report" \
-    && rg -q '可选' "$report" \
+    && has_pattern '风险分级优化建议' "$report" \
+    && has_pattern '低风险' "$report" \
+    && has_pattern '中风险' "$report" \
+    && has_pattern '高风险' "$report" \
+    && has_pattern '可选' "$report" \
     && [[ -f "$tmp/data/recommendations-latest.json" ]]; then
     pass "diagnostic report includes optional risk-ranked recommendations"
   else
@@ -161,7 +203,7 @@ assert_diagnostic_report_has_risk_recommendations() {
 }
 
 assert_high_risk_not_auto_run() {
-  if rg -n 'docker system prune -a --volumes|tmutil deletelocalsnapshots|simctl erase all' \
+  if list_pattern 'docker system prune -a --volumes|tmutil deletelocalsnapshots|simctl erase all' \
     04-自动化脚本/one-click-optimization.sh 04-自动化脚本/quick-optimization.sh >/tmp/mac-opt-high-risk.$$ 2>/dev/null; then
     cat /tmp/mac-opt-high-risk.$$
     rm -f /tmp/mac-opt-high-risk.$$
@@ -190,7 +232,7 @@ assert_verify_runs() {
 
 assert_docs_are_current() {
   local failed=0
-  if rg -n 'Mac-Optimization-System|execute-optimizations\.sh|disk-optimization\.sh|performance-tuning\.sh|startup-optimization\.sh|04-自动化脚本/rollback\.sh.*不存在' --glob '*.md' . >/tmp/mac-opt-docs.$$ 2>/dev/null; then
+  if list_markdown_pattern 'Mac-Optimization-System|execute-optimizations\.sh|disk-optimization\.sh|performance-tuning\.sh|startup-optimization\.sh|04-自动化脚本/rollback\.sh.*不存在' >/tmp/mac-opt-docs.$$ 2>/dev/null; then
     cat /tmp/mac-opt-docs.$$
     failed=1
   fi
@@ -240,17 +282,17 @@ assert_skill_package_metadata() {
   assert_json_valid "skill.json"
   assert_json_valid "package.json"
 
-  if rg -q '^name: mac-optimizer$' SKILL.md \
-    && rg -q '^description: Use when' SKILL.md \
-    && rg -q '诊断报告优先' SKILL.md \
-    && rg -q '高风险' SKILL.md; then
+  if has_pattern '^name: mac-optimizer$' SKILL.md \
+    && has_pattern '^description: Use when' SKILL.md \
+    && has_pattern '诊断报告优先' SKILL.md \
+    && has_pattern '高风险' SKILL.md; then
     pass "skill entrypoint includes trigger metadata and safety rules"
   else
     fail "SKILL.md must include trigger metadata and safety rules"
   fi
 
-  if rg -q 'ChuluuMGL/mac-optimizer' skill.json README.md README.zh-CN.md \
-    && rg -q 'diagnosis-first' skill.json README.md; then
+  if has_pattern 'ChuluuMGL/mac-optimizer' skill.json README.md README.zh-CN.md \
+    && has_pattern 'diagnosis-first' skill.json README.md; then
     pass "skill metadata and readmes include repository and diagnosis-first positioning"
   else
     fail "skill metadata/readmes must describe the shareable repository and diagnosis-first positioning"
