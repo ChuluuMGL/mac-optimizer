@@ -1,0 +1,73 @@
+{
+  "name": "mac-optimizer",
+  "display_name": "Mac Optimizer",
+  "description": "Diagnosis-first macOS maintenance skill for safe local cleanup, health reports, and risk-ranked optimization recommendations.",
+  "version": "0.1.0",
+  "author": "Chuluu",
+  "maintainer": "Chuluu",
+  "organization": "ChuluuMGL",
+  "license": "MIT",
+  "repository": "https://github.com/ChuluuMGL/mac-optimizer",
+  "homepage": "https://github.com/ChuluuMGL/mac-optimizer",
+  "category": "system-maintenance",
+  "language": [
+    "zh-CN",
+    "en"
+  ],
+  "keywords": [
+    "macos",
+    "mac",
+    "optimizer",
+    "diagnosis-first",
+    "diagnostic-report",
+    "cleanup",
+    "storage",
+    "cache",
+    "logs",
+    "startup-items",
+    "risk-ranked-recommendations",
+    "dry-run",
+    "skill"
+  ],
+  "outputs": [
+    "macOS diagnostic report",
+    "low medium high risk recommendations",
+    "dry-run cleanup preview",
+    "maintenance execution summary",
+    "manual high-risk review list"
+  ],
+  "use_cases": [
+    "Diagnose whether a Mac still has useful optimization space",
+    "Safely preview routine cache and log cleanup",
+    "Produce optional recommendations with risk labels",
+    "Run monthly macOS maintenance with a conservative safety model"
+  ],
+  "not_for": [
+    "Blind automatic deletion",
+    "iPhone or iOS cache cleanup",
+    "Bypassing Time Machine, Docker volume, simulator data, or system service review"
+  ],
+  "entrypoint": "SKILL.md",
+  "scripts": {
+    "diagnose": "01-检查脚本/full-check.sh",
+    "quick": "04-自动化脚本/quick-optimization.sh",
+    "one_click": "04-自动化脚本/one-click-optimization.sh",
+    "verify": "04-自动化脚本/verify.sh",
+    "rollback": "04-自动化脚本/rollback.sh",
+    "monthly": "05-维护计划/monthly.sh",
+    "install": "scripts/install.sh",
+    "package": "scripts/package_runtime_skill.py"
+  },
+  "safety": {
+    "default_mode": "diagnosis-first",
+    "requires_diagnostic_before_cleanup": true,
+    "dry_run_supported": true,
+    "high_risk_auto_execution": false,
+    "requires_confirmation_for_cleanup": true
+  },
+  "compatibility": {
+    "platform": "macOS",
+    "shell": "bash",
+    "python": "3.x for packaging only"
+  }
+}

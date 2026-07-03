@@ -1,0 +1,17 @@
+name: mac-optimizer
+display_name: Mac Optimizer
+description: Diagnosis-first macOS maintenance skill for safe local cleanup, health reports, and risk-ranked recommendations.
+entrypoint: SKILL.md
+repository: https://github.com/ChuluuMGL/mac-optimizer
+author: Chuluu
+license: MIT
+tags:
+  - macos
+  - cleanup
+  - diagnostics
+  - diagnosis-first
+  - risk-ranked-recommendations
+  - dry-run
+default_prompt: >
+  Use mac-optimizer to diagnose the Mac first, summarize low/medium/high risk
+  recommendations, and only preview cleanup until the user confirms execution.

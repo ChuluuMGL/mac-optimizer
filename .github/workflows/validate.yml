@@ -1,0 +1,25 @@
+name: Validate
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate JSON metadata
+        run: |
+          python3 -m json.tool skill.json >/dev/null
+          python3 -m json.tool package.json >/dev/null
+
+      - name: Run test suite
+        run: bash tests/run.sh
+
+      - name: Build runtime package
+        run: python3 scripts/package_runtime_skill.py
