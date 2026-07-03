@@ -1,10 +1,20 @@
 # Mac Optimizer Skill
 
-Diagnosis-first macOS maintenance skill for safe local cleanup, health reports, and risk-ranked optimization recommendations.
+> **Diagnosis-first macOS maintenance Skill for AI Agents**  
+> An open-source Agent Skill for safe local Mac diagnostics, storage cleanup previews, health reports, and risk-ranked optimization recommendations.
+>
+> Created and maintained by **Chuluu**.
 
-Created and maintained by **Chuluu**.
+[中文说明](README.zh-CN.md) | English
 
-[中文说明](README.zh-CN.md) · [Testing](TESTING.md) · [Skill entry](SKILL.md)
+[![AI Skill](https://img.shields.io/badge/AI%20Skill-mac--optimizer-0E5E43)](./SKILL.md)
+[![Version](https://img.shields.io/badge/version-0.1.1-green)](./skill.json)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](./LICENSE)
+[![by Chuluu](https://img.shields.io/badge/by-Chuluu-0E5E43)](https://github.com/ChuluuMGL)
+[![Workflow](https://img.shields.io/badge/workflow-diagnosis--first-purple)](./SKILL.md)
+[![Safety](https://img.shields.io/badge/safety-dry--run--first-blue)](./references/safety-policy.md)
+
+[GitHub Repository](https://github.com/ChuluuMGL/mac-optimizer) | [Workflow Fixtures](./examples/) | [Testing Matrix](./TESTING.md) | [License](./LICENSE)
 
 ## What It Does
 
@@ -19,6 +29,12 @@ Mac Optimizer is a shareable Agent/Codex Skill plus a local macOS maintenance to
 It covers routine cache cleanup, old log cleanup, startup item inspection, developer-tool storage checks, DNS refresh, conservative UI preference tuning, rollback, and monthly maintenance orchestration.
 
 ## Quick Start
+
+```bash
+git clone https://github.com/ChuluuMGL/mac-optimizer.git
+cd mac-optimizer
+scripts/install.sh codex
+```
 
 Run the read-only diagnostic report first:
 
@@ -46,10 +62,15 @@ bash ./04-自动化脚本/one-click-optimization.sh --safe
 
 ## Skill Installation
 
-Install into the default local Agent/Codex skills folder:
+The core skill follows the open Agent Skills shape: a folder with `SKILL.md`, plus optional `references/`, `scripts/`, and local tools. Most compatible agents only require the folder to be placed under their skills directory.
+
+Installer script:
 
 ```bash
-bash ./scripts/install.sh
+scripts/install.sh codex
+scripts/install.sh claude
+scripts/install.sh cursor
+scripts/install.sh custom "$HOME/.config/agents/skills"
 ```
 
 Package a runtime ZIP for sharing:
@@ -59,6 +80,28 @@ python3 ./scripts/package_runtime_skill.py
 ```
 
 The generated package is written to `dist/mac-optimizer-skill.zip`.
+
+### Install And Compatibility
+
+| Agent/runtime | Suggested install path | Status |
+|---|---|---|
+| Codex | `~/.codex/skills/mac-optimizer/` | Maintainer-tested |
+| Claude Code | `./.claude/skills/mac-optimizer/` | Expected compatible |
+| Cursor | `./.cursor/skills/mac-optimizer/` | Expected compatible |
+| Trae | `./.trae/skills/mac-optimizer/` | Expected compatible |
+| Antigravity | `./.agent/skills/mac-optimizer/` | Expected compatible |
+| OpenClaw | Workspace or user skills root documented by OpenClaw | Expected compatible |
+| Hermes | `~/.hermes/skills/mac-optimizer/` | Expected compatible |
+| Gemini CLI | `./.gemini/skills/mac-optimizer/` | Expected compatible |
+| Kimi Code CLI | `./.kimi/skills/mac-optimizer/` | Expected compatible |
+
+Only Codex-specific UI metadata lives in `agents/openai.yaml`. Other agents can ignore that file and use `SKILL.md` directly.
+
+### Ask An AI Agent
+
+You can ask a coding agent:
+
+> Install mac-optimizer from https://github.com/ChuluuMGL/mac-optimizer
 
 ## Included Files
 
@@ -76,6 +119,15 @@ The generated package is written to `dist/mac-optimizer-skill.zip`.
 Mac Optimizer is not a blind cleaner. Optimization scripts refuse to run until diagnostic data exists. `--dry-run` previews actions without deleting files or changing settings. Time Machine snapshots, Docker volumes, simulator data, system-service changes, and power policy changes are treated as high risk and are not part of automatic quick or one-click flows.
 
 iPhone optimization is intentionally separate. iOS does not allow the same local cleanup model as macOS, so this repository only includes iPhone guidance as a reference document.
+
+## License And Publishing
+
+Mac Optimizer Skill is released under the [MIT License](./LICENSE).
+
+- Copyright: `Copyright (c) 2026 Chuluu`
+- Maintainer: [ChuluuMGL](https://github.com/ChuluuMGL)
+- Repository: [https://github.com/ChuluuMGL/mac-optimizer](https://github.com/ChuluuMGL/mac-optimizer)
+- Notice: [NOTICE](./NOTICE)
 
 ## Recommended Prompts
 

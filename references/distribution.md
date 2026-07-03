@@ -16,20 +16,28 @@ This repository is intended to be shareable as a GitHub-maintained Skill.
 ## Local Install
 
 ```bash
-bash scripts/install.sh
+scripts/install.sh codex
+scripts/install.sh claude
+scripts/install.sh cursor
+scripts/install.sh custom "$HOME/.config/agents/skills"
 ```
 
-The default target is:
+Common targets:
 
-```text
-~/.agents/skills/mac-optimizer
-```
+| Target | Path |
+|---|---|
+| `codex` | `~/.codex/skills/mac-optimizer` |
+| `claude` | `./.claude/skills/mac-optimizer` |
+| `cursor` | `./.cursor/skills/mac-optimizer` |
+| `trae` | `./.trae/skills/mac-optimizer` |
+| `antigravity` | `./.agent/skills/mac-optimizer` |
+| `gemini` | `./.gemini/skills/mac-optimizer` |
+| `kimi` | `./.kimi/skills/mac-optimizer` |
+| `hermes` | `~/.hermes/skills/mac-optimizer` |
+| `agents` | `./.agents/skills/mac-optimizer` |
+| `custom PATH` | `PATH/mac-optimizer` |
 
-Set a custom target with:
-
-```bash
-bash scripts/install.sh --target /path/to/skills/mac-optimizer
-```
+For an exact installation path, use `scripts/install.sh --target /path/to/mac-optimizer`.
 
 ## Runtime Package
 
@@ -42,3 +50,13 @@ The package is written to:
 ```text
 dist/mac-optimizer-skill.zip
 ```
+
+## Source Of Truth
+
+GitHub is the source of truth:
+
+```text
+https://github.com/ChuluuMGL/mac-optimizer
+```
+
+Release metadata should stay synchronized across `README.md`, `README.zh-CN.md`, `NOTICE`, `skill.json`, and `package.json`.

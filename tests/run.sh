@@ -297,6 +297,35 @@ assert_skill_package_metadata() {
   else
     fail "skill metadata/readmes must describe the shareable repository and diagnosis-first positioning"
   fi
+
+  if has_pattern 'license-MIT' README.md README.zh-CN.md \
+    && has_pattern 'version-0\.1\.1' README.md README.zh-CN.md \
+    && has_pattern 'by-Chuluu' README.md README.zh-CN.md \
+    && has_pattern 'Copyright \(c\) 2026 Chuluu' NOTICE LICENSE \
+    && has_pattern 'Published on GitHub by ChuluuMGL' NOTICE \
+    && has_pattern 'This project is released under the MIT License' NOTICE; then
+    pass "license, version, maintainer, and publication information is visible"
+  else
+    fail "README/NOTICE/LICENSE must expose license, version, maintainer, and publication information"
+  fi
+
+  if has_pattern '"copyright": "Copyright \(c\) 2026 Chuluu"' skill.json \
+    && has_pattern '"github": "https://github.com/ChuluuMGL"' skill.json \
+    && has_pattern '"format": "Agent Skills / SKILL\.md"' skill.json \
+    && has_pattern '"tested":' skill.json \
+    && has_pattern '"expected":' skill.json; then
+    pass "skill.json follows Chuluu-style publishing metadata"
+  else
+    fail "skill.json must include copyright, maintainer, organization, and compatibility metadata"
+  fi
+
+  if has_pattern 'scripts/install\.sh codex' README.md README.zh-CN.md \
+    && has_pattern 'custom "\$HOME/\.config/agents/skills"' README.md README.zh-CN.md \
+    && has_pattern 'Targets:' scripts/install.sh; then
+    pass "installer documents common agent targets"
+  else
+    fail "README and installer must document common agent target installation"
+  fi
 }
 
 assert_file "lib/common.sh"

@@ -1,8 +1,17 @@
 Mac Optimizer Skill
 
+Copyright (c) 2026 Chuluu
+
 Created and maintained by Chuluu.
+Published on GitHub by ChuluuMGL:
+https://github.com/ChuluuMGL/mac-optimizer
+
+Website:
+https://github.com/ChuluuMGL
 
 This repository packages a local macOS maintenance toolkit as a shareable
 Agent/Codex Skill. It follows a diagnosis-first safety model: diagnostic
 reports and optional recommendations come before cleanup, and high-risk
 actions are not included in automatic quick or one-click flows.
+
+This project is released under the MIT License. See LICENSE for details.

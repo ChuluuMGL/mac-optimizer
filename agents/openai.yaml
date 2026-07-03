@@ -1,6 +1,7 @@
 name: mac-optimizer
 display_name: Mac Optimizer
 description: Diagnosis-first macOS maintenance skill for safe local cleanup, health reports, and risk-ranked recommendations.
+version: 0.1.1
 entrypoint: SKILL.md
 repository: https://github.com/ChuluuMGL/mac-optimizer
 author: Chuluu

@@ -1,73 +1,153 @@
 {
   "name": "mac-optimizer",
   "display_name": "Mac Optimizer",
-  "description": "Diagnosis-first macOS maintenance skill for safe local cleanup, health reports, and risk-ranked optimization recommendations.",
-  "version": "0.1.0",
+  "description": "Diagnose macOS storage, cache, logs, startup items, developer-tool residue, and routine maintenance needs with a diagnosis-first workflow, dry-run previews, risk-ranked recommendations, safe cleanup scripts, rollback guidance, and high-risk manual review boundaries.",
+  "version": "0.1.1",
   "author": "Chuluu",
-  "maintainer": "Chuluu",
-  "organization": "ChuluuMGL",
+  "copyright": "Copyright (c) 2026 Chuluu",
+  "maintainer": {
+    "name": "ChuluuMGL",
+    "github": "https://github.com/ChuluuMGL"
+  },
+  "organization": {
+    "name": "Chuluu",
+    "alternate_name": "ChuluuMGL",
+    "url": "https://github.com/ChuluuMGL"
+  },
   "license": "MIT",
   "repository": "https://github.com/ChuluuMGL/mac-optimizer",
   "homepage": "https://github.com/ChuluuMGL/mac-optimizer",
-  "category": "system-maintenance",
+  "category": "System Maintenance",
   "language": [
     "zh-CN",
     "en"
   ],
   "keywords": [
-    "macos",
-    "mac",
-    "optimizer",
+    "macOS",
+    "Mac maintenance",
+    "Mac optimizer",
     "diagnosis-first",
-    "diagnostic-report",
-    "cleanup",
-    "storage",
-    "cache",
-    "logs",
-    "startup-items",
-    "risk-ranked-recommendations",
-    "dry-run",
-    "skill"
+    "diagnostic report",
+    "risk-ranked recommendations",
+    "dry-run cleanup",
+    "safe cleanup",
+    "cache cleanup",
+    "log cleanup",
+    "startup items",
+    "developer cache",
+    "Time Machine safety",
+    "Docker volume safety",
+    "Agent Skills",
+    "Chuluu",
+    "ChuluuMGL"
   ],
   "outputs": [
     "macOS diagnostic report",
-    "low medium high risk recommendations",
-    "dry-run cleanup preview",
-    "maintenance execution summary",
-    "manual high-risk review list"
+    "Health score",
+    "Low, medium, and high risk recommendations",
+    "Dry-run cleanup preview",
+    "Confirmed maintenance execution summary",
+    "Manual high-risk review list",
+    "Rollback guidance"
   ],
+  "examples": "examples/basic-maintenance",
+  "testing_matrix": "TESTING.md",
   "use_cases": [
     "Diagnose whether a Mac still has useful optimization space",
-    "Safely preview routine cache and log cleanup",
-    "Produce optional recommendations with risk labels",
-    "Run monthly macOS maintenance with a conservative safety model"
+    "Preview routine cache and log cleanup safely",
+    "Summarize low, medium, and high risk maintenance options",
+    "Run monthly macOS maintenance with conservative defaults",
+    "Review high-risk storage cleanup before taking manual action"
   ],
   "not_for": [
     "Blind automatic deletion",
     "iPhone or iOS cache cleanup",
-    "Bypassing Time Machine, Docker volume, simulator data, or system service review"
+    "Bypassing Time Machine, Docker volume, simulator data, or system service review",
+    "Deleting user-created documents, photos, source code, or project directories",
+    "Replacing backup strategy or device-management tooling"
   ],
   "entrypoint": "SKILL.md",
-  "scripts": {
-    "diagnose": "01-检查脚本/full-check.sh",
-    "quick": "04-自动化脚本/quick-optimization.sh",
-    "one_click": "04-自动化脚本/one-click-optimization.sh",
-    "verify": "04-自动化脚本/verify.sh",
-    "rollback": "04-自动化脚本/rollback.sh",
-    "monthly": "05-维护计划/monthly.sh",
-    "install": "scripts/install.sh",
-    "package": "scripts/package_runtime_skill.py"
+  "workflow_references": {
+    "safety_policy": "references/safety-policy.md",
+    "risk_model": "references/risk-model.md",
+    "diagnostic_report_contract": "references/diagnostic-report-contract.md",
+    "distribution": "references/distribution.md"
   },
+  "scripts": [
+    {
+      "name": "diagnose",
+      "path": "01-检查脚本/full-check.sh",
+      "description": "Generates the read-only macOS diagnostic report and latest recommendation data."
+    },
+    {
+      "name": "quick",
+      "path": "04-自动化脚本/quick-optimization.sh",
+      "description": "Runs routine low-risk maintenance after diagnostic data exists."
+    },
+    {
+      "name": "one_click",
+      "path": "04-自动化脚本/one-click-optimization.sh",
+      "description": "Runs the standard maintenance flow with dry-run, safe mode, and confirmation support."
+    },
+    {
+      "name": "verify",
+      "path": "04-自动化脚本/verify.sh",
+      "description": "Checks that the local Mac Optimizer toolset is complete and runnable."
+    },
+    {
+      "name": "rollback",
+      "path": "04-自动化脚本/rollback.sh",
+      "description": "Restores tool-managed macOS preference changes where applicable."
+    },
+    {
+      "name": "monthly",
+      "path": "05-维护计划/monthly.sh",
+      "description": "Orchestrates monthly diagnostics and optional maintenance."
+    },
+    {
+      "name": "install",
+      "path": "scripts/install.sh",
+      "description": "Installs the skill into common local agent skills directories."
+    },
+    {
+      "name": "package_runtime_skill",
+      "path": "scripts/package_runtime_skill.py",
+      "description": "Creates a lightweight runtime ZIP for team and partner installation in compatible agent tools."
+    }
+  ],
   "safety": {
     "default_mode": "diagnosis-first",
     "requires_diagnostic_before_cleanup": true,
     "dry_run_supported": true,
     "high_risk_auto_execution": false,
-    "requires_confirmation_for_cleanup": true
+    "requires_confirmation_for_cleanup": true,
+    "high_risk_policy": "High-risk actions are report-only and manual-review only unless a future workflow adds separate, explicit, narrow, reversible confirmation steps."
   },
   "compatibility": {
+    "format": "Agent Skills / SKILL.md",
     "platform": "macOS",
     "shell": "bash",
-    "python": "3.x for packaging only"
-  }
+    "python": "3.x for packaging only",
+    "tested": [
+      "Codex"
+    ],
+    "expected": [
+      "Claude Code",
+      "Cursor",
+      "Trae",
+      "Antigravity",
+      "OpenClaw",
+      "Hermes",
+      "Gemini CLI",
+      "Kimi Code CLI"
+    ],
+    "notes": "Core workflow uses SKILL.md, references, scripts, and local macOS shell tools. agents/openai.yaml is Codex-specific UI metadata and can be ignored by other runtimes. Keep future runtimes in expected until verified end to end."
+  },
+  "related_skills": [
+    {
+      "name": "business-website-skill",
+      "repository": "https://github.com/ChuluuMGL/business-website-skill",
+      "description": "Create client-ready business websites with evidence mapping, visual-system discovery, implementation, and QA."
+    }
+  ]
 }

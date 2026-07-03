@@ -1,17 +1,32 @@
 {
   "name": "mac-optimizer-skill",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Diagnosis-first macOS maintenance skill for safe local cleanup and risk-ranked optimization recommendations.",
+  "author": "Chuluu",
+  "homepage": "https://github.com/ChuluuMGL/mac-optimizer",
   "repository": {
     "type": "git",
     "url": "https://github.com/ChuluuMGL/mac-optimizer.git"
   },
+  "bugs": {
+    "url": "https://github.com/ChuluuMGL/mac-optimizer/issues"
+  },
   "license": "MIT",
+  "keywords": [
+    "macos",
+    "mac",
+    "optimizer",
+    "agent-skill",
+    "diagnosis-first",
+    "dry-run",
+    "cleanup"
+  ],
   "scripts": {
     "test": "bash tests/run.sh",
     "validate": "bash tests/run.sh",
     "package": "python3 scripts/package_runtime_skill.py",
-    "install:local": "bash scripts/install.sh"
+    "install:codex": "bash scripts/install.sh codex",
+    "install:local": "bash scripts/install.sh agents"
   }
 }
