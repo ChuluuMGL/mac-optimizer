@@ -14,7 +14,6 @@
 - `04-自动化脚本/verify.sh`: 只读验证。
 - `04-自动化脚本/rollback.sh`: 设置回滚。
 - `05-维护计划/monthly.sh`: 月度维护。
-- `iPhone-Optimization-Guide.md`: iPhone 优化边界和方案。
 
 ## 推荐流程
 

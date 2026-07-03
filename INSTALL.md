@@ -34,7 +34,7 @@ ln -s /path/to/Mac-Optimizer "Mac优化系统"
 
 ```bash
 mkdir -p /path/to/your-obsidian-vault/Mac优化文档
-cp README.md INSTALL.md iPhone-Optimization-Guide.md /path/to/your-obsidian-vault/Mac优化文档/
+cp README.md INSTALL.md /path/to/your-obsidian-vault/Mac优化文档/
 cp -R 00-系统概览 /path/to/your-obsidian-vault/Mac优化文档/
 ```
 

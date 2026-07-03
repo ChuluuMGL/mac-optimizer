@@ -2,7 +2,7 @@
   "name": "mac-optimizer",
   "display_name": "Mac Optimizer",
   "description": "Diagnose macOS storage, cache, logs, startup items, developer-tool residue, and routine maintenance needs with a diagnosis-first workflow, dry-run previews, risk-ranked recommendations, safe cleanup scripts, rollback guidance, and high-risk manual review boundaries.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": "Chuluu",
   "copyright": "Copyright (c) 2026 Chuluu",
   "maintainer": {
@@ -61,7 +61,6 @@
   ],
   "not_for": [
     "Blind automatic deletion",
-    "iPhone or iOS cache cleanup",
     "Bypassing Time Machine, Docker volume, simulator data, or system service review",
     "Deleting user-created documents, photos, source code, or project directories",
     "Replacing backup strategy or device-management tooling"

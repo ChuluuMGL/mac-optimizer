@@ -22,8 +22,6 @@ Use this skill when the user asks to:
 - 做日常或月度 Mac 维护。
 - 判断某个优化动作是否安全。
 
-Do not use this skill as an iPhone cleanup system. iPhone/iOS 优化属于另一套体系，只能给备份、存储整理和设置建议。
-
 ## Operating Rules
 
 | Rule | Required behavior |
@@ -76,7 +74,6 @@ bash ./05-维护计划/monthly.sh --dry-run
 | Treating all report suggestions as mandatory | Present them as optional recommendations. |
 | Bundling high-risk cleanup into one-click mode | Keep it out of automatic flows. |
 | Skipping dry-run because the action sounds safe | Preview first unless the user has already confirmed. |
-| Mixing iPhone cleanup into this system | Explain that iPhone optimization requires a separate workflow. |
 
 ## Final Handoff
 

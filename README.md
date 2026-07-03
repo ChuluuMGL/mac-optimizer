@@ -8,7 +8,7 @@
 [中文说明](README.zh-CN.md) | English
 
 [![AI Skill](https://img.shields.io/badge/AI%20Skill-mac--optimizer-0E5E43)](./SKILL.md)
-[![Version](https://img.shields.io/badge/version-0.1.1-green)](./skill.json)
+[![Version](https://img.shields.io/badge/version-0.1.2-green)](./skill.json)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](./LICENSE)
 [![by Chuluu](https://img.shields.io/badge/by-Chuluu-0E5E43)](https://github.com/ChuluuMGL)
 [![Workflow](https://img.shields.io/badge/workflow-diagnosis--first-purple)](./SKILL.md)
@@ -117,8 +117,6 @@ You can ask a coding agent:
 ## Safety Positioning
 
 Mac Optimizer is not a blind cleaner. Optimization scripts refuse to run until diagnostic data exists. `--dry-run` previews actions without deleting files or changing settings. Time Machine snapshots, Docker volumes, simulator data, system-service changes, and power policy changes are treated as high risk and are not part of automatic quick or one-click flows.
-
-iPhone optimization is intentionally separate. iOS does not allow the same local cleanup model as macOS, so this repository only includes iPhone guidance as a reference document.
 
 ## License And Publishing
 

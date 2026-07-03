@@ -27,7 +27,3 @@ High-risk items may appear in reports as manual review recommendations only.
 ## Privacy Boundary
 
 Reports may summarize sizes, paths, and categories needed for maintenance. Do not expose secrets, file contents, private messages, credentials, or unrelated personal data.
-
-## iPhone Boundary
-
-iPhone optimization is a separate workflow. iOS does not support the same local cache and app-data cleanup model as macOS, so this Skill should only reference iPhone guidance, not execute iPhone cleanup.

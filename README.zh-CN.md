@@ -8,7 +8,7 @@
 中文 | [English](README.md)
 
 [![AI Skill](https://img.shields.io/badge/AI%20Skill-mac--optimizer-0E5E43)](./SKILL.md)
-[![Version](https://img.shields.io/badge/version-0.1.1-green)](./skill.json)
+[![Version](https://img.shields.io/badge/version-0.1.2-green)](./skill.json)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](./LICENSE)
 [![by Chuluu](https://img.shields.io/badge/by-Chuluu-0E5E43)](https://github.com/ChuluuMGL)
 [![Workflow](https://img.shields.io/badge/workflow-diagnosis--first-purple)](./SKILL.md)
@@ -134,7 +134,3 @@ Mac Optimizer Skill 使用 [MIT License](./LICENSE) 发布。
 - 维护者: [ChuluuMGL](https://github.com/ChuluuMGL)
 - 仓库: [https://github.com/ChuluuMGL/mac-optimizer](https://github.com/ChuluuMGL/mac-optimizer)
 - 发布说明: [NOTICE](./NOTICE)
-
-## iPhone
-
-iPhone 优化是另一套体系。iOS 不允许脚本直接清系统缓存或应用缓存。可做的是备份、照片/文件整理、存储诊断、系统设置建议和连接后的只读信息检查。见 `iPhone-Optimization-Guide.md`。

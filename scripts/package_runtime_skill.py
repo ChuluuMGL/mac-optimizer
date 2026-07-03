@@ -29,7 +29,6 @@ INCLUDE_PATHS = [
     "03-优化方案",
     "04-自动化脚本",
     "05-维护计划",
-    "iPhone-Optimization-Guide.md",
     "INSTALL.md",
     "Mac优化系统-快速开始.md",
     "Obsidian-Integration-Guide.md",

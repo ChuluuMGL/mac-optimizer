@@ -81,33 +81,33 @@ else
 fi
 
 # ============================================
-# 2. iOS 模拟器数据
+# 2. Xcode Simulator 数据
 # ============================================
 echo ""
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${CYAN}2. iOS 模拟器数据${NC}"
+echo -e "${CYAN}2. Xcode Simulator 数据${NC}"
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-IOS_SIMULATOR_DIR=~/Library/Developer/CoreSimulator
-if [ -d "$IOS_SIMULATOR_DIR" ]; then
-    IOS_SIZE=$(get_size "$IOS_SIMULATOR_DIR")
-    warn "  大小: ${IOS_SIZE}"
-    info "  路径: ${IOS_SIMULATOR_DIR}"
+XCODE_SIMULATOR_DIR=~/Library/Developer/CoreSimulator
+if [ -d "$XCODE_SIMULATOR_DIR" ]; then
+    XCODE_SIMULATOR_SIZE=$(get_size "$XCODE_SIMULATOR_DIR")
+    warn "  大小: ${XCODE_SIMULATOR_SIZE}"
+    info "  路径: ${XCODE_SIMULATOR_DIR}"
     echo ""
 
-    read -p "是否删除所有 iOS 模拟器数据? (y/N) " -n 1 -r
+    read -p "是否删除所有 Xcode Simulator 数据? (y/N) " -n 1 -r
     echo
 
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         xcrun simctl erase all 2>/dev/null
-        log "  ✓ iOS 模拟器数据已删除"
+        log "  ✓ Xcode Simulator 数据已删除"
         FREED_SPACE=$((FREED_SPACE + 1))
     else
         info "  - 跳过"
     fi
 else
-    info "  未安装 iOS 模拟器"
+    info "  未安装 Xcode Simulator"
 fi
 
 # ============================================
@@ -392,7 +392,7 @@ cat << EOF
 
 预期释放空间:
   • Xcode: 5-20GB
-  • iOS 模拟器: 10-30GB
+  • Xcode Simulator: 10-30GB
   • Android: 5-15GB
   • Docker: 2-10GB
   • 应用缓存: 2-5GB

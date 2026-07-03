@@ -45,5 +45,3 @@ bash ./04-自动化脚本/one-click-optimization.sh
 ```
 
 高风险项只提示，不会被一键脚本自动执行。
-
-iPhone 优化见 [iPhone 优化指南](iPhone-Optimization-Guide.md)。

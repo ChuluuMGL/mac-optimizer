@@ -51,7 +51,3 @@ bash ./04-自动化脚本/one-click-optimization.sh --safe
 ```bash
 bash ./04-自动化脚本/verify.sh
 ```
-
-## iPhone
-
-iPhone 是独立体系，见 `iPhone-Optimization-Guide.md`。

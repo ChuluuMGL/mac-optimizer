@@ -57,6 +57,21 @@ list_markdown_pattern() {
   fi
 }
 
+list_repo_pattern() {
+  local pattern="$1"
+
+  if command -v rg >/dev/null 2>&1; then
+    rg -n "$pattern" . -g '!logs/**' -g '!data/**' -g '!dist/**' -g '!.git/**'
+  else
+    find . \
+      -path './logs' -prune -o \
+      -path './data' -prune -o \
+      -path './dist' -prune -o \
+      -path './.git' -prune -o \
+      -type f -print0 | xargs -0 grep -En "$pattern"
+  fi
+}
+
 assert_file() {
   local path="$1"
   if [[ -f "$path" ]]; then
@@ -299,7 +314,7 @@ assert_skill_package_metadata() {
   fi
 
   if has_pattern 'license-MIT' README.md README.zh-CN.md \
-    && has_pattern 'version-0\.1\.1' README.md README.zh-CN.md \
+    && has_pattern 'version-0\.1\.2' README.md README.zh-CN.md \
     && has_pattern 'by-Chuluu' README.md README.zh-CN.md \
     && has_pattern 'Copyright \(c\) 2026 Chuluu' NOTICE LICENSE \
     && has_pattern 'Published on GitHub by ChuluuMGL' NOTICE \
@@ -326,6 +341,15 @@ assert_skill_package_metadata() {
   else
     fail "README and installer must document common agent target installation"
   fi
+
+  if list_repo_pattern 'i[P]hone|[i]OS' >/tmp/mac-opt-phone-topic.$$ 2>/dev/null; then
+    cat /tmp/mac-opt-phone-topic.$$
+    rm -f /tmp/mac-opt-phone-topic.$$
+    fail "mac-optimizer publishing files must not mention phone optimization topics"
+  else
+    rm -f /tmp/mac-opt-phone-topic.$$
+    pass "publishing files avoid phone optimization topics"
+  fi
 }
 
 assert_file "lib/common.sh"
@@ -333,7 +357,6 @@ assert_file "README.md"
 assert_file "00-系统概览/README.md"
 assert_file "04-自动化脚本/verify.sh"
 assert_file "04-自动化脚本/rollback.sh"
-assert_file "iPhone-Optimization-Guide.md"
 assert_skill_package_metadata
 
 assert_no_script_hardcoded_install_path

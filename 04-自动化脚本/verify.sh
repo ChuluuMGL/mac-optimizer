@@ -28,7 +28,6 @@ REQUIRED_FILES=(
   "04-自动化脚本/rollback.sh"
   "05-维护计划/monthly.sh"
   "README.md"
-  "iPhone-Optimization-Guide.md"
 )
 
 for file in "${REQUIRED_FILES[@]}"; do
