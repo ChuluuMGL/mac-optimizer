@@ -52,7 +52,7 @@ Use this skill when the user asks to:
 | Medium | Trash cleanup, old downloads, Dock/animation preference changes | Requires clear confirmation and rollback notes when relevant. |
 | High | Time Machine snapshots, Docker volumes, simulator data, system services, power policy | Report and explain only; do not auto-run. |
 
-See `references/risk-model.md` and `references/safety-policy.md` before expanding cleanup behavior.
+See `references/risk-model.md`, `references/report-review-checklist.md`, and `references/safety-policy.md` before expanding cleanup behavior.
 
 ## Commands
 

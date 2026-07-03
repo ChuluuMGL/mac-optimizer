@@ -15,6 +15,7 @@ INCLUDE_PATHS = [
     "skill.json",
     "README.md",
     "README.zh-CN.md",
+    "CHANGELOG.md",
     "LICENSE",
     "NOTICE",
     "TESTING.md",

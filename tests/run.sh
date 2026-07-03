@@ -276,6 +276,7 @@ assert_skill_package_metadata() {
     "SKILL.md"
     "skill.json"
     "README.zh-CN.md"
+    "CHANGELOG.md"
     "LICENSE"
     "NOTICE"
     "TESTING.md"
@@ -283,10 +284,12 @@ assert_skill_package_metadata() {
     "references/safety-policy.md"
     "references/risk-model.md"
     "references/diagnostic-report-contract.md"
+    "references/report-review-checklist.md"
     "references/distribution.md"
     "scripts/install.sh"
     "scripts/package_runtime_skill.py"
     ".github/workflows/validate.yml"
+    "examples/basic-maintenance/sample-report.md"
   )
 
   local path
@@ -314,7 +317,7 @@ assert_skill_package_metadata() {
   fi
 
   if has_pattern 'license-MIT' README.md README.zh-CN.md \
-    && has_pattern 'version-0\.1\.2' README.md README.zh-CN.md \
+    && has_pattern 'version-0\.1\.3' README.md README.zh-CN.md \
     && has_pattern 'by-Chuluu' README.md README.zh-CN.md \
     && has_pattern 'Copyright \(c\) 2026 Chuluu' NOTICE LICENSE \
     && has_pattern 'Published on GitHub by ChuluuMGL' NOTICE \
@@ -327,6 +330,9 @@ assert_skill_package_metadata() {
   if has_pattern '"copyright": "Copyright \(c\) 2026 Chuluu"' skill.json \
     && has_pattern '"github": "https://github.com/ChuluuMGL"' skill.json \
     && has_pattern '"format": "Agent Skills / SKILL\.md"' skill.json \
+    && has_pattern '"changelog": "CHANGELOG.md"' skill.json \
+    && has_pattern '"sample_report": "examples/basic-maintenance/sample-report.md"' skill.json \
+    && has_pattern '"report_review_checklist": "references/report-review-checklist.md"' skill.json \
     && has_pattern '"tested":' skill.json \
     && has_pattern '"expected":' skill.json; then
     pass "skill.json follows Chuluu-style publishing metadata"
@@ -340,6 +346,17 @@ assert_skill_package_metadata() {
     pass "installer documents common agent targets"
   else
     fail "README and installer must document common agent target installation"
+  fi
+
+  if has_pattern 'CHANGELOG.md' README.md README.zh-CN.md \
+    && has_pattern 'sample-report.md' README.md README.zh-CN.md \
+    && has_pattern 'report-review-checklist.md' README.md README.zh-CN.md \
+    && has_pattern '0\.1\.3' CHANGELOG.md \
+    && has_pattern '脱敏示例' examples/basic-maintenance/sample-report.md \
+    && has_pattern '高风险' references/report-review-checklist.md; then
+    pass "release notes, sample report, and report review checklist are linked"
+  else
+    fail "README, metadata, changelog, sample report, and review checklist must stay linked"
   fi
 
   if list_repo_pattern 'i[P]hone|[i]OS' >/tmp/mac-opt-phone-topic.$$ 2>/dev/null; then

@@ -8,13 +8,13 @@
 [中文说明](README.zh-CN.md) | English
 
 [![AI Skill](https://img.shields.io/badge/AI%20Skill-mac--optimizer-0E5E43)](./SKILL.md)
-[![Version](https://img.shields.io/badge/version-0.1.2-green)](./skill.json)
+[![Version](https://img.shields.io/badge/version-0.1.3-green)](./skill.json)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](./LICENSE)
 [![by Chuluu](https://img.shields.io/badge/by-Chuluu-0E5E43)](https://github.com/ChuluuMGL)
 [![Workflow](https://img.shields.io/badge/workflow-diagnosis--first-purple)](./SKILL.md)
 [![Safety](https://img.shields.io/badge/safety-dry--run--first-blue)](./references/safety-policy.md)
 
-[GitHub Repository](https://github.com/ChuluuMGL/mac-optimizer) | [Workflow Fixtures](./examples/) | [Testing Matrix](./TESTING.md) | [License](./LICENSE)
+[GitHub Repository](https://github.com/ChuluuMGL/mac-optimizer) | [Workflow Fixtures](./examples/) | [Sample Report](./examples/basic-maintenance/sample-report.md) | [Review Checklist](./references/report-review-checklist.md) | [Changelog](./CHANGELOG.md) | [Testing Matrix](./TESTING.md) | [License](./LICENSE)
 
 ## What It Does
 
@@ -107,12 +107,14 @@ You can ask a coding agent:
 
 - `SKILL.md`: Agent-facing operating rules and workflow.
 - `skill.json`: Machine-readable metadata for GitHub and skill registries.
+- `CHANGELOG.md`: Version history and release notes.
 - `01-检查脚本/full-check.sh`: Read-only macOS diagnostic report.
 - `04-自动化脚本/one-click-optimization.sh`: Standard maintenance entrypoint.
 - `04-自动化脚本/quick-optimization.sh`: Faster routine maintenance.
 - `04-自动化脚本/rollback.sh`: Rollback for tool-managed preference changes.
 - `05-维护计划/monthly.sh`: Monthly diagnosis plus maintenance orchestration.
-- `references/`: Safety policy, risk model, report contract, and distribution notes.
+- `examples/basic-maintenance/sample-report.md`: Sanitized sample diagnostic report.
+- `references/`: Safety policy, risk model, report contract, report-review-checklist.md, and distribution notes.
 
 ## Safety Positioning
 
