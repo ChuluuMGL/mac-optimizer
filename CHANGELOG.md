@@ -2,6 +2,15 @@
 
 All notable changes to Mac Optimizer Skill are tracked here.
 
+## Unreleased
+
+- Hardened `full-check.sh`: rewrote the report as incremental sections so a single slow command can no longer blank the whole report.
+- Added `scan()` timeout wrapper, `list_large_files()` (Spotlight-first with find fallback), and APFS-aware physical/logical size + sparse-file detection in `lib/common.sh`.
+- Switched the three unbounded `find` calls to `-prune` + `-xdev` so scans no longer descend into `~/Library` and hang developer machines.
+- Large files now report physical vs logical size with a `SPARSE` flag, avoiding inflated "reclaimable space" advice on sparse/clone files.
+- Redacted `$HOME` paths in the report by default (new `--full-paths` switch) and split `~/Library` usage into per-subdirectory scans.
+- Replaced per-file `-exec ... \;` with batched `-exec ... +` in cleanup scripts, and ignored `.DS_Store`.
+
 ## 0.1.4 - 2026-07-03
 
 - Added a release-readiness checker for version consistency and required publishing assets.

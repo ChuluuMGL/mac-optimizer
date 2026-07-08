@@ -185,13 +185,9 @@ echo ""
 info "  扫描中..."
 echo ""
 
-LARGE_FILES=$(find ~ -type f -size +1G \
-    -not -path "*/Library/*" \
-    -not -path "*/.ollama/*" \
-    -not -path "*/node_modules/*" \
-    -not -path "*/.Trash/*" \
-    -not -path "*/iCloud/*" \
-    2>/dev/null | head -10)
+LARGE_FILES=$(find ~ -xdev \
+    -type d \( -name Library -o -name .ollama -o -name node_modules -o -name .Trash -o -name iCloud \) -prune \
+    -o -type f -size +1G -print 2>/dev/null | head -10)
 
 if [ -n "$LARGE_FILES" ]; then
     warn "  发现以下大文件:"
@@ -221,7 +217,7 @@ if [ $OLD_DOWNLOADS -gt 0 ]; then
 
     echo ""
     info "  10个最老的文件:"
-    find ~/Downloads -type f -mtime +30 -exec ls -lh {} \; 2>/dev/null | head -10 | awk '{print "    " $9, "  (" $5 ")"}'
+    find ~/Downloads -type f -mtime +30 -exec ls -lh {} + 2>/dev/null | head -10 | awk '{print "    " $9, "  (" $5 ")"}'
     echo ""
 
     read -p "是否删除30天以上的文件? (y/N) " -n 1 -r
@@ -312,7 +308,7 @@ echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 info "  扫描项目日志..."
-LARGE_LOGS=$(find ~/Documents -path "*/logs/*.log" -size +100M -exec ls -lh {} \; 2>/dev/null | awk '{print $5, $9}')
+LARGE_LOGS=$(find ~/Documents -path "*/logs/*.log" -size +100M -exec ls -lh {} + 2>/dev/null | awk '{print $5, $9}')
 
 if [ -n "$LARGE_LOGS" ]; then
     warn "  发现大型日志文件:"
