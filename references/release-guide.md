@@ -1,6 +1,6 @@
 # Release Guide
 
-Use this guide when preparing a public release such as `v0.1.4`.
+Use this guide when preparing a public release such as `v0.1.5`.
 
 ## Preflight
 
@@ -14,7 +14,7 @@ Expected package outputs:
 
 ```text
 dist/mac-optimizer-skill.zip
-dist/mac-optimizer-skill-0.1.4.zip
+dist/mac-optimizer-skill-0.1.5.zip
 ```
 
 ## Tag And Publish
@@ -22,8 +22,8 @@ dist/mac-optimizer-skill-0.1.4.zip
 After the working tree is clean and `main` is pushed:
 
 ```bash
-git tag v0.1.4
-git push origin v0.1.4
+git tag v0.1.5
+git push origin v0.1.5
 ```
 
 The `Release` GitHub Action validates metadata, runs the test suite, builds the runtime ZIP files, and creates a GitHub Release with both stable and versioned package names.

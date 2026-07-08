@@ -331,7 +331,7 @@ assert_skill_package_metadata() {
   fi
 
   if has_pattern 'license-MIT' README.md README.zh-CN.md \
-    && has_pattern 'version-0\.1\.4' README.md README.zh-CN.md \
+    && has_pattern 'version-0\.1\.5' README.md README.zh-CN.md \
     && has_pattern 'by-Chuluu' README.md README.zh-CN.md \
     && has_pattern 'Copyright \(c\) 2026 Chuluu' NOTICE LICENSE \
     && has_pattern 'Published on GitHub by ChuluuMGL' NOTICE \
@@ -367,10 +367,10 @@ assert_skill_package_metadata() {
     && has_pattern 'sample-report.md' README.md README.zh-CN.md \
     && has_pattern 'report-review-checklist.md' README.md README.zh-CN.md \
     && has_pattern 'release-guide.md' README.md README.zh-CN.md \
-    && has_pattern '0\.1\.4' CHANGELOG.md \
+    && has_pattern '0\.1\.5' CHANGELOG.md \
     && has_pattern '脱敏示例' examples/basic-maintenance/sample-report.md \
     && has_pattern '高风险' references/report-review-checklist.md \
-    && has_pattern 'v0\.1\.4' references/release-guide.md; then
+    && has_pattern 'v0\.1\.5' references/release-guide.md; then
     pass "release notes, sample report, report review checklist, and release guide are linked"
   else
     fail "README, metadata, changelog, sample report, review checklist, and release guide must stay linked"
@@ -398,7 +398,7 @@ assert_runtime_package_outputs() {
   rm -rf dist
   if python3 scripts/package_runtime_skill.py >/tmp/mac-opt-package.$$ 2>&1 \
     && [[ -f "dist/mac-optimizer-skill.zip" ]] \
-    && [[ -f "dist/mac-optimizer-skill-0.1.4.zip" ]]; then
+    && [[ -f "dist/mac-optimizer-skill-0.1.5.zip" ]]; then
     pass "runtime package creates stable and versioned archives"
   else
     cat /tmp/mac-opt-package.$$

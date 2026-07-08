@@ -2,7 +2,7 @@
   "name": "mac-optimizer",
   "display_name": "Mac Optimizer",
   "description": "Diagnose macOS storage, cache, logs, startup items, developer-tool residue, and routine maintenance needs with a diagnosis-first workflow, dry-run previews, risk-ranked recommendations, safe cleanup scripts, rollback guidance, and high-risk manual review boundaries.",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "author": "Chuluu",
   "copyright": "Copyright (c) 2026 Chuluu",
   "maintainer": {

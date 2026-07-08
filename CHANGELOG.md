@@ -4,6 +4,10 @@ All notable changes to Mac Optimizer Skill are tracked here.
 
 ## Unreleased
 
+No unreleased changes.
+
+## 0.1.5 - 2026-07-08
+
 - Hardened `full-check.sh`: rewrote the report as incremental sections so a single slow command can no longer blank the whole report.
 - Added `scan()` timeout wrapper, `list_large_files()` (Spotlight-first with find fallback), and APFS-aware physical/logical size + sparse-file detection in `lib/common.sh`.
 - Switched the three unbounded `find` calls to `-prune` + `-xdev` so scans no longer descend into `~/Library` and hang developer machines.
