@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../lib/common.sh
 source "$SCRIPT_DIR/../lib/common.sh"
 
-VERSION="1.3.0"
+VERSION="1.4.0"
 parse_common_args "$@"
 ensure_work_dirs
 
@@ -27,18 +27,20 @@ DISK_USAGE="$(disk_capacity_number)"
 FREE_SPACE_GB="$(df -k "$DATA_VOLUME" | awk 'NR==2 {printf "%.1f", $4/1024/1024}')"
 SCORE=100
 
-if [[ "$DISK_USAGE" -gt 90 ]]; then
+if [[ "$DISK_USAGE" -ge 90 ]]; then
+  SCORE=$((SCORE - 30))
+elif [[ "$DISK_USAGE" -ge 85 ]]; then
   SCORE=$((SCORE - 20))
-elif [[ "$DISK_USAGE" -gt 80 ]]; then
-  SCORE=$((SCORE - 10))
+elif [[ "$DISK_USAGE" -ge 80 ]]; then
+  SCORE=$((SCORE - 15))
 elif [[ "$DISK_USAGE" -gt 70 ]]; then
   SCORE=$((SCORE - 5))
 fi
 
 if awk "BEGIN { exit !($FREE_SPACE_GB < 20) }"; then
-  SCORE=$((SCORE - 15))
+  SCORE=$((SCORE - 20))
 elif awk "BEGIN { exit !($FREE_SPACE_GB < 50) }"; then
-  SCORE=$((SCORE - 10))
+  SCORE=$((SCORE - 15))
 fi
 
 MEMORY_GB="$(sysctl -n hw.memsize | awk '{printf "%.1f", $1/1024/1024/1024}')"
@@ -73,6 +75,20 @@ for _sub in Developer Caches Containers "Group Containers" "Application Support"
 done
 LIBRARY_USAGE_OUT="$(printf '%s' "$LIBRARY_USAGE_OUT" | sort -hr | head -10 || true)"
 
+# 对容易被 Library 总量掩盖的重点路径做定点只读检查。
+STORAGE_PRESSURE_OUT=""
+for _candidate in \
+  "$MAC_OPT_USER_HOME/Library/Application Support/Codex/Crashpad/pending" \
+  "$MAC_OPT_USER_HOME/Library/Containers/com.tencent.xinWeChat/Data/Documents" \
+  "$MAC_OPT_USER_HOME/Library/Developer/Xcode/iOS DeviceSupport" \
+  "$MAC_OPT_USER_HOME/Library/Developer/Xcode/DerivedData" \
+  "$MAC_OPT_USER_HOME/Library/Developer/CoreSimulator/Devices"; do
+  if [[ -e "$_candidate" ]]; then
+    STORAGE_PRESSURE_OUT+=$(scan du -sh "$_candidate" 2>/dev/null || true)$'\n'
+  fi
+done
+STORAGE_PRESSURE_OUT="$(printf '%s' "$STORAGE_PRESSURE_OUT" | sort -hr || true)"
+
 # 大文件：走 lib/common.sh 的 format_large_files（mdfind 优先 + 物理大小 + 稀疏标注），
 # 避免空洞/克隆文件被误报为可回收空间。
 LARGE_FILES_OUT="$(format_large_files || true)"
@@ -101,7 +117,7 @@ TM_SNAPSHOTS_OUT="$(scan tmutil listlocalsnapshots / 2>/dev/null | head -10 || t
 # --full-paths 时跳过，保留完整路径。
 if [[ "${FULL_PATHS:-0}" != "1" ]]; then
   _home="$MAC_OPT_USER_HOME"
-  for _v in DIR_USAGE LIBRARY_USAGE_OUT PROJECT_LOGS_OUT SQLITE_OUT NODE_MODULES_OUT CACHE_OUT BIG_LOGS_OUT; do
+  for _v in DIR_USAGE LIBRARY_USAGE_OUT STORAGE_PRESSURE_OUT PROJECT_LOGS_OUT SQLITE_OUT NODE_MODULES_OUT CACHE_OUT BIG_LOGS_OUT; do
     _val="${!_v}"
     printf -v "$_v" '%s' "${_val//$_home/~}"
   done
@@ -118,6 +134,8 @@ else
 fi
 if [[ "$DISK_USAGE" -lt 80 ]]; then
   DISK_HEALTH="良好"
+elif [[ "$DISK_USAGE" -lt 90 ]]; then
+  DISK_HEALTH="偏高"
 else
   DISK_HEALTH="需要清理"
 fi
@@ -174,6 +192,14 @@ ${FENCE}
 
 ${FENCE}
 ${LIBRARY_USAGE_OUT}
+${FENCE}
+
+### 重点存储压力点
+
+> 这些路径只做容量报告。微信文档、模拟器和设备支持文件不会自动删除。
+
+${FENCE}
+${STORAGE_PRESSURE_OUT}
 ${FENCE}
 
 ### 大文件 Top 20
@@ -293,10 +319,10 @@ cat >> "$REPORT_FILE" << SECTION8
 
 | 风险 | 建议 | 适用场景 | 推荐动作 | 是否自动执行 |
 |------|------|----------|----------|--------------|
-| 低风险 | 清理浏览器缓存、旧日志、包管理器缓存 | 常规维护、缓存偏大 | 先运行 \`one-click-optimization.sh --dry-run\` 预览 | 可选执行 |
-| 低风险 | 刷新 DNS 缓存 | 网络解析异常、网页打不开 | 通过常规维护脚本执行，管理员权限不足会跳过 | 可选执行 |
-| 中风险 | 清理废纸篓和下载目录旧文件 | 确认文件不再需要 | 先检查预览输出，必要时用 \`--safe\` 跳过下载目录 | 需要确认 |
-| 中风险 | 调整 Dock 和动画设置 | 想减少界面等待 | 可通过 \`rollback.sh\` 恢复 | 需要确认 |
+| 低风险 | 清理浏览器、包管理器缓存和 7 天前 Crashpad | 常规维护、缓存偏大 | 先运行 \`one-click-optimization.sh --dry-run --safe\` 预览 | 可选执行 |
+| 低风险 | 截断已知运行日志 | 已确认不需要历史日志 | 非安全模式下逐个处理 | 需要确认 |
+| 中风险 | 废纸篓、下载旧文件和广泛应用日志 | 可能包含用户资料或恢复副本 | 自动流程只报告，必须人工挑选 | 不自动执行 |
+| 中风险 | 调整 Dock、动画或刷新 DNS | 明确需要对应设置变化 | 分别显式传入 \`--tune-ui\` 或 \`--flush-dns\` | 需要确认 |
 | 高风险 | 删除 Time Machine 本地快照 | 磁盘极度紧张且已确认备份策略 | 只在深度清理脚本中逐项确认 | 不自动执行 |
 | 高风险 | 清理 Docker volumes、模拟器数据、开发环境大缓存 | 开发者存储占用很高 | 先备份或确认项目不依赖这些数据 | 不自动执行 |
 | 高风险 | 禁用系统服务或修改电源休眠策略 | 明确知道影响范围 | 单独执行进阶脚本并保留回滚路径 | 不自动执行 |
@@ -309,13 +335,13 @@ cat >> "$REPORT_FILE" << SECTION9
 1. 先预览常规优化:
 
 ${FENCE}bash
-bash "$MAC_OPT_ROOT/04-自动化脚本/one-click-optimization.sh" --dry-run
+bash "$MAC_OPT_ROOT/04-自动化脚本/one-click-optimization.sh" --dry-run --safe
 ${FENCE}
 
 2. 确认后执行:
 
 ${FENCE}bash
-bash "$MAC_OPT_ROOT/04-自动化脚本/one-click-optimization.sh"
+bash "$MAC_OPT_ROOT/04-自动化脚本/one-click-optimization.sh" --safe
 ${FENCE}
 
 3. 深度清理前先逐项确认:
@@ -358,7 +384,7 @@ cat > "$RECOMMENDATIONS_FILE" << EOF
   "policy": "diagnose_first_optional_optimization",
   "low_risk": [
     "browser_cache",
-    "old_logs",
+    "old_crash_reports",
     "package_manager_cache",
     "dns_cache"
   ],
@@ -366,6 +392,11 @@ cat > "$RECOMMENDATIONS_FILE" << EOF
     "trash",
     "old_downloads",
     "dock_animation_preferences"
+  ],
+  "automatic_exclusions": [
+    "trash",
+    "old_downloads",
+    "broad_old_logs"
   ],
   "high_risk_not_automatic": [
     "time_machine_local_snapshots",

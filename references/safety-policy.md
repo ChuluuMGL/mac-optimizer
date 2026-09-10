@@ -9,7 +9,19 @@ Mac Optimizer follows a diagnosis-first safety model.
 - Run `--dry-run` before deletion or settings changes.
 - Ask for confirmation before execution.
 - Prefer `--safe` when the user wants conservative maintenance.
+- In automatic flows, treat Trash, Downloads, broad application logs, app containers, and developer data as report-only.
+- Require `--tune-ui`, `--flush-dns`, or `--truncate-v2ray-log` before the corresponding UI, DNS, or named-log action.
 - Keep generated logs and data in `logs/` and `data/`.
+
+## Automatic Cleanup Boundary
+
+Automatic quick and one-click flows may clean only:
+
+- Regenerable browser, package-manager, and known application caches.
+- Codex Crashpad pending reports older than seven days.
+- A specifically named log only when its explicit opt-in flag is present and `--safe` is absent.
+
+They must not empty Trash, delete Downloads by age, or delete broad log matches. Those findings remain visible for item-level review.
 
 ## High-Risk Boundary
 

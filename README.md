@@ -8,7 +8,7 @@
 [中文说明](README.zh-CN.md) | English
 
 [![AI Skill](https://img.shields.io/badge/AI%20Skill-mac--optimizer-0E5E43)](./SKILL.md)
-[![Version](https://img.shields.io/badge/version-0.1.5-green)](./skill.json)
+[![Version](https://img.shields.io/badge/version-0.1.6-green)](./skill.json)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](./LICENSE)
 [![by Chuluu](https://img.shields.io/badge/by-Chuluu-0E5E43)](https://github.com/ChuluuMGL)
 [![Workflow](https://img.shields.io/badge/workflow-diagnosis--first-purple)](./SKILL.md)
@@ -58,10 +58,18 @@ Run confirmed maintenance:
 bash ./04-自动化脚本/one-click-optimization.sh
 ```
 
-Use conservative mode when you want to avoid system preference and admin-permission actions:
+Use conservative mode for cache-only maintenance. It also preserves Trash, Downloads, broad logs, and developer/app data:
 
 ```bash
 bash ./04-自动化脚本/one-click-optimization.sh --safe
+```
+
+UI tuning and DNS refresh are separate opt-ins:
+
+```bash
+bash ./04-自动化脚本/one-click-optimization.sh --tune-ui
+bash ./04-自动化脚本/one-click-optimization.sh --flush-dns
+bash ./04-自动化脚本/one-click-optimization.sh --truncate-v2ray-log
 ```
 
 ## Skill Installation
@@ -84,7 +92,7 @@ python3 ./scripts/package_runtime_skill.py
 ```
 
 The generated package is written to `dist/mac-optimizer-skill.zip`.
-A versioned archive is also generated, for example `dist/mac-optimizer-skill-0.1.5.zip`.
+A versioned archive is also generated, for example `dist/mac-optimizer-skill-0.1.6.zip`.
 
 ### Install And Compatibility
 
@@ -123,7 +131,7 @@ You can ask a coding agent:
 
 ## Safety Positioning
 
-Mac Optimizer is not a blind cleaner. Optimization scripts refuse to run until diagnostic data exists. `--dry-run` previews actions without deleting files or changing settings. Time Machine snapshots, Docker volumes, simulator data, system-service changes, and power policy changes are treated as high risk and are not part of automatic quick or one-click flows.
+Mac Optimizer is not a blind cleaner. Optimization scripts refuse to run until diagnostic data exists. `--dry-run` previews actions without deleting files or changing settings. Automatic flows clean only regenerable caches and old Crashpad reports; Trash, Downloads, broad logs, app containers, and developer data are report-only. Time Machine snapshots, Docker volumes, simulator data, system-service changes, and power policy changes remain high risk.
 
 ## License And Publishing
 

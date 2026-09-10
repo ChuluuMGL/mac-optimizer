@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../lib/common.sh
 source "$SCRIPT_DIR/../lib/common.sh"
 
-VERSION="1.3.0"
+VERSION="1.4.0"
 parse_common_args "$@"
 ensure_work_dirs
 LOG_FILE="$MAC_OPT_LOG_DIR/rollback-$(date +%Y%m%d-%H%M%S).log"

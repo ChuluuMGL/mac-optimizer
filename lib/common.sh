@@ -15,6 +15,9 @@ DRY_RUN=0
 ASSUME_YES=0
 SAFE_MODE=0
 FULL_PATHS=0
+TUNE_UI=0
+FLUSH_DNS=0
+TRUNCATE_V2RAY_LOG=0
 EXTRA_ARGS=()
 
 RED='\033[0;31m'
@@ -28,8 +31,12 @@ show_common_usage() {
 Common options:
   --dry-run, -n   Preview actions without deleting files or changing settings.
   --yes, -y       Run without interactive confirmation.
-  --safe          Skip preference changes and sudo-only operations.
+  --safe          Run only regenerable cache and old Crashpad cleanup.
   --full-paths    Show full paths in the report (default redacts $HOME to ~).
+  --tune-ui       Opt in to reversible Dock and animation changes.
+  --flush-dns     Opt in to refreshing DNS caches (may require sudo).
+  --truncate-v2ray-log
+                  Opt in to truncating the specifically named v2ray log.
   --help, -h      Show this help.
 EOF
 }
@@ -52,6 +59,18 @@ parse_common_args() {
         ;;
       --full-paths)
         FULL_PATHS=1
+        shift
+        ;;
+      --tune-ui)
+        TUNE_UI=1
+        shift
+        ;;
+      --flush-dns)
+        FLUSH_DNS=1
+        shift
+        ;;
+      --truncate-v2ray-log)
+        TRUNCATE_V2RAY_LOG=1
         shift
         ;;
       --help|-h)
@@ -267,6 +286,53 @@ disk_capacity_percent() {
 
 disk_capacity_number() {
   disk_capacity_percent | tr -d '%'
+}
+
+disk_available_kb() {
+  df -k "$(data_volume_mount)" | awk 'NR==2 {print $4}'
+}
+
+reclaimed_space_mb() {
+  local before_kb="$1"
+  local after_kb="$2"
+  awk -v before="$before_kb" -v after="$after_kb" 'BEGIN {
+    delta = after - before
+    if (delta < 0) delta = 0
+    printf "%.1f", delta / 1024
+  }'
+}
+
+report_dir_state() {
+  local path="$1"
+  local label="$2"
+  if [[ ! -d "$path" ]]; then
+    info "$label 不存在。"
+    return 0
+  fi
+  log "[仅报告] $label: 约 $(dir_size_mb "$path")MB，$(file_count_in_dir "$path") 个项目。"
+}
+
+report_file_state() {
+  local path="$1"
+  local label="$2"
+  if [[ ! -f "$path" ]]; then
+    info "$label 不存在。"
+    return 0
+  fi
+  log "[仅报告] $label: 约 $(dir_size_mb "$path")MB。"
+}
+
+report_matching_files() {
+  local label="$1"
+  local base="$2"
+  shift 2
+  if [[ ! -d "$base" ]]; then
+    info "$label 不存在。"
+    return 0
+  fi
+  local count
+  count="$({ find "$base" "$@" -type f -print 2>/dev/null || true; } | wc -l | tr -d ' ')"
+  log "[仅报告] $label: $count 个文件；自动流程不会删除。"
 }
 
 latest_diagnostic_path() {

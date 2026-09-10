@@ -8,7 +8,7 @@
 中文 | [English](README.md)
 
 [![AI Skill](https://img.shields.io/badge/AI%20Skill-mac--optimizer-0E5E43)](./SKILL.md)
-[![Version](https://img.shields.io/badge/version-0.1.5-green)](./skill.json)
+[![Version](https://img.shields.io/badge/version-0.1.6-green)](./skill.json)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](./LICENSE)
 [![by Chuluu](https://img.shields.io/badge/by-Chuluu-0E5E43)](https://github.com/ChuluuMGL)
 [![Workflow](https://img.shields.io/badge/workflow-diagnosis--first-purple)](./SKILL.md)
@@ -64,10 +64,18 @@ bash ./04-自动化脚本/one-click-optimization.sh
 bash ./04-自动化脚本/one-click-optimization.sh --yes
 ```
 
-保守模式会跳过系统偏好和管理员权限动作：
+保守模式只执行可再生缓存维护，同时保留废纸篓、下载文件、广泛日志及应用/开发数据：
 
 ```bash
 bash ./04-自动化脚本/one-click-optimization.sh --safe
+```
+
+界面设置和 DNS 刷新必须单独显式启用：
+
+```bash
+bash ./04-自动化脚本/one-click-optimization.sh --tune-ui
+bash ./04-自动化脚本/one-click-optimization.sh --flush-dns
+bash ./04-自动化脚本/one-click-optimization.sh --truncate-v2ray-log
 ```
 
 ## 作为 Skill 使用
@@ -90,7 +98,7 @@ python3 ./scripts/package_runtime_skill.py
 ```
 
 输出文件会生成在 `dist/mac-optimizer-skill.zip`。
-同时也会生成版本化文件，例如 `dist/mac-optimizer-skill-0.1.5.zip`。
+同时也会生成版本化文件，例如 `dist/mac-optimizer-skill-0.1.6.zip`。
 
 ### 安装与兼容性
 
@@ -131,7 +139,7 @@ python3 ./scripts/package_runtime_skill.py
 - 默认会在执行前询问。
 - `--dry-run` 只预览，不删除文件、不修改设置。
 - 日志和数据保存在当前项目的 `logs/` 和 `data/`。
-- 下载目录、废纸篓、Time Machine、本地模拟器和 Docker 清理都应先预览或逐项确认。
+- 自动流程只清理可再生缓存和 7 天前的 Crashpad；下载目录、废纸篓、广泛日志、应用容器和开发数据只报告、逐项确认。
 - Time Machine 快照、Docker volumes、模拟器数据、系统服务和电源策略属于高风险项，只在报告和进阶脚本中提示。
 
 ## License 与发布信息

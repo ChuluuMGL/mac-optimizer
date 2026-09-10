@@ -32,6 +32,7 @@ Use this skill when the user asks to:
 | 高风险只提示 | Never include high-risk actions in `quick` or `one-click` automatic flows. |
 | 明确确认 | Ask before deleting files, changing settings, or running admin actions. |
 | 保守默认 | Prefer `--safe` when the user wants minimal risk. |
+| 自动边界 | Automatic flows may clean regenerable caches and old Crashpad reports, but must only report Trash, Downloads, broad logs, app containers, and developer data. |
 | 隐私保护 | Do not expose private file contents, secrets, or personal paths beyond what is needed for the report summary. |
 
 ## Workflow
@@ -41,15 +42,15 @@ Use this skill when the user asks to:
 3. Summarize the report: health score, free space, main pressure points, and low/medium/high risk suggestions.
 4. Offer optional next steps. Keep high-risk items as manual warnings.
 5. Preview safe maintenance: `bash ./04-自动化脚本/one-click-optimization.sh --dry-run`.
-6. Execute only after confirmation. Use `--safe` for conservative mode.
+6. Execute only after confirmation. Use `--safe` for cache-only maintenance; review Trash, Downloads, broad logs, app containers, and developer data manually.
 7. Verify with `bash ./04-自动化脚本/verify.sh` or a fresh diagnostic report.
 
 ## Risk Model
 
 | Risk | Examples | Automation policy |
 |------|----------|-------------------|
-| Low | Browser cache, old logs, package-manager caches, DNS refresh | Can be previewed and optionally executed. |
-| Medium | Trash cleanup, old downloads, Dock/animation preference changes | Requires clear confirmation and rollback notes when relevant. |
+| Low | Browser cache, package-manager caches, old Crashpad reports | Can be previewed and optionally executed. |
+| Medium | Trash, old downloads, broad logs, Dock/animation preferences | Report only in automatic flows; requires item-level review. |
 | High | Time Machine snapshots, Docker volumes, simulator data, system services, power policy | Report and explain only; do not auto-run. |
 
 See `references/risk-model.md`, `references/report-review-checklist.md`, and `references/safety-policy.md` before expanding cleanup behavior.
@@ -73,6 +74,7 @@ bash ./05-维护计划/monthly.sh --dry-run
 | Running cleanup before diagnostics | Stop and generate the diagnostic report first. |
 | Treating all report suggestions as mandatory | Present them as optional recommendations. |
 | Bundling high-risk cleanup into one-click mode | Keep it out of automatic flows. |
+| Treating age as proof that a download or log is disposable | Report it for review; never auto-delete it by age alone. |
 | Skipping dry-run because the action sounds safe | Preview first unless the user has already confirmed. |
 
 ## Final Handoff

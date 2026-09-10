@@ -7,7 +7,9 @@ Use this checklist after a diagnostic report is generated and before recommendin
 - Confirm the report path and check time.
 - Check free space, disk usage, and health score.
 - Identify the top storage pressure categories.
+- Check Crashpad, app-managed document containers, Xcode DeviceSupport, DerivedData, and simulator storage separately.
 - Separate actual findings from empty sections or unavailable system data.
+- Treat Trash, Downloads, broad logs, app containers, and developer data as review items rather than automatic cleanup targets.
 
 ## Classify Recommendations
 

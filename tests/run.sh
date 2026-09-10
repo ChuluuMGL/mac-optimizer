@@ -20,9 +20,9 @@ has_pattern() {
   shift
 
   if command -v rg >/dev/null 2>&1; then
-    rg -q "$pattern" "$@"
+    rg -q -- "$pattern" "$@"
   else
-    grep -Eq "$pattern" "$@"
+    grep -Eq -- "$pattern" "$@"
   fi
 }
 
@@ -153,6 +153,121 @@ assert_safe_dry_run_execution() {
   rm -rf "$tmp" /tmp/mac-opt-dry-run.$$
 }
 
+assert_safe_execution_preserves_user_files() {
+  local script="$1"
+  local tmp
+  tmp="$(mktemp -d)"
+  mkdir -p "$tmp/home/Library/Caches/Google/Chrome/Default/Cache"
+  mkdir -p "$tmp/home/Library/Application Support/Codex/Crashpad/pending"
+  mkdir -p "$tmp/home/Library/Logs" "$tmp/home/Downloads" "$tmp/home/.Trash"
+  mkdir -p "$tmp/logs" "$tmp/data"
+  printf 'cache\n' > "$tmp/home/Library/Caches/Google/Chrome/Default/Cache/remove.txt"
+  printf 'crash\n' > "$tmp/home/Library/Application Support/Codex/Crashpad/pending/remove.dmp"
+  printf 'log\n' > "$tmp/home/Library/Logs/keep.log"
+  printf 'download\n' > "$tmp/home/Downloads/keep.txt"
+  printf 'trash\n' > "$tmp/home/.Trash/keep.txt"
+  touch -t 202001010000 \
+    "$tmp/home/Library/Application Support/Codex/Crashpad/pending/remove.dmp" \
+    "$tmp/home/Library/Logs/keep.log" "$tmp/home/Downloads/keep.txt"
+  printf '{"date":"test","score":90}\n' > "$tmp/data/check-latest.json"
+
+  if ! HOME="$tmp/home" MAC_OPT_USER_HOME="$tmp/home" \
+    MAC_OPT_LOG_DIR="$tmp/logs" MAC_OPT_DATA_DIR="$tmp/data" \
+    MAC_OPT_NO_CLEAR=1 PATH=/usr/bin:/bin \
+    bash "$script" --safe --yes >/tmp/mac-opt-safe-exec.$$ 2>&1; then
+    cat /tmp/mac-opt-safe-exec.$$
+    rm -rf "$tmp" /tmp/mac-opt-safe-exec.$$
+    fail "$script safe execution exits successfully"
+    return
+  fi
+
+  if [[ ! -f "$tmp/home/Library/Caches/Google/Chrome/Default/Cache/remove.txt" \
+    && ! -f "$tmp/home/Library/Application Support/Codex/Crashpad/pending/remove.dmp" \
+    && -f "$tmp/home/Library/Logs/keep.log" \
+    && -f "$tmp/home/Downloads/keep.txt" \
+    && -f "$tmp/home/.Trash/keep.txt" ]]; then
+    pass "$script safe mode cleans regenerable data and preserves user-visible files"
+  else
+    cat /tmp/mac-opt-safe-exec.$$
+    fail "$script safe mode must preserve logs, Downloads, and Trash"
+  fi
+
+  rm -rf "$tmp" /tmp/mac-opt-safe-exec.$$
+}
+
+assert_medium_risk_is_report_only() {
+  local files=(
+    "04-自动化脚本/one-click-optimization.sh"
+    "04-自动化脚本/quick-optimization.sh"
+    "05-维护计划/monthly.sh"
+  )
+  if list_pattern 'delete_dir_contents.*\.Trash|delete_matching_files.*下载目录|delete_matching_files.*Library/Logs 7 天前' \
+    "${files[@]}" >/tmp/mac-opt-medium-risk.$$ 2>/dev/null; then
+    cat /tmp/mac-opt-medium-risk.$$
+    rm -f /tmp/mac-opt-medium-risk.$$
+    fail "automatic scripts must not delete Trash, Downloads, or broad logs"
+  else
+    rm -f /tmp/mac-opt-medium-risk.$$
+    pass "automatic scripts keep medium-risk storage findings report-only"
+  fi
+}
+
+assert_system_changes_are_opt_in() {
+  if has_pattern 'TUNE_UI' 04-自动化脚本/one-click-optimization.sh \
+    && has_pattern 'FLUSH_DNS' 04-自动化脚本/one-click-optimization.sh \
+    && has_pattern '--tune-ui' lib/common.sh \
+    && has_pattern '--flush-dns' lib/common.sh; then
+    pass "UI and DNS changes require explicit flags"
+  else
+    fail "UI and DNS changes must require explicit flags"
+  fi
+}
+
+assert_named_log_is_opt_in() {
+  if has_pattern 'TRUNCATE_V2RAY_LOG' 04-自动化脚本/one-click-optimization.sh \
+    && has_pattern '--truncate-v2ray-log' lib/common.sh \
+    && has_pattern 'report_file_state' 04-自动化脚本/one-click-optimization.sh; then
+    pass "named log truncation requires explicit opt-in"
+  else
+    fail "v2ray log truncation must require --truncate-v2ray-log"
+  fi
+}
+
+assert_named_log_behavior() {
+  local script="$1"
+  local tmp
+  tmp="$(mktemp -d)"
+  mkdir -p "$tmp/home/Library/Logs" "$tmp/logs" "$tmp/data"
+  printf '{"date":"test","score":90}\n' > "$tmp/data/check-latest.json"
+  printf 'keep history\n' > "$tmp/home/Library/Logs/v2ray-core.log"
+
+  HOME="$tmp/home" MAC_OPT_USER_HOME="$tmp/home" \
+    MAC_OPT_LOG_DIR="$tmp/logs" MAC_OPT_DATA_DIR="$tmp/data" \
+    MAC_OPT_NO_CLEAR=1 PATH=/usr/bin:/bin \
+    bash "$script" --yes >/tmp/mac-opt-v2ray-default.$$ 2>&1
+
+  if [[ -s "$tmp/home/Library/Logs/v2ray-core.log" ]]; then
+    pass "$script preserves the named log without explicit opt-in"
+  else
+    cat /tmp/mac-opt-v2ray-default.$$
+    fail "$script must preserve the named log by default"
+  fi
+
+  HOME="$tmp/home" MAC_OPT_USER_HOME="$tmp/home" \
+    MAC_OPT_LOG_DIR="$tmp/logs" MAC_OPT_DATA_DIR="$tmp/data" \
+    MAC_OPT_NO_CLEAR=1 PATH=/usr/bin:/bin \
+    bash "$script" --truncate-v2ray-log --yes >/tmp/mac-opt-v2ray-opt-in.$$ 2>&1
+
+  if [[ ! -s "$tmp/home/Library/Logs/v2ray-core.log" ]]; then
+    pass "$script truncates the named log only after explicit opt-in"
+  else
+    cat /tmp/mac-opt-v2ray-opt-in.$$
+    fail "$script must honor explicit named-log opt-in"
+  fi
+
+  rm -rf "$tmp" /tmp/mac-opt-v2ray-default.$$ /tmp/mac-opt-v2ray-opt-in.$$
+}
+
 assert_optimizer_requires_diagnostic() {
   local script="$1"
   local tmp
@@ -226,6 +341,19 @@ assert_high_risk_not_auto_run() {
   else
     rm -f /tmp/mac-opt-high-risk.$$
     pass "high-risk cleanup is not in automatic scripts"
+  fi
+}
+
+assert_advanced_scripts_preserve_ambiguous_data() {
+  local deep_script="03-优化方案/deep-storage-cleanup.sh"
+  local ai_script="03-优化方案/ai-tools-cleanup.sh"
+  if has_pattern 'Downloads.*-delete|docker system prune.*--volumes|tmutil deletelocalsnapshots|Documents.*logs.*-delete' "$deep_script" \
+    || has_pattern 'n8n.*log.*-delete|\.zai/logs.*rm|\.trae.*/logs.*rm' "$ai_script"; then
+    fail "advanced scripts must not bulk-delete ambiguous user, project, volume, snapshot, or log data"
+  elif has_pattern '\[仅报告\]' "$deep_script" && has_pattern '\[仅报告\]' "$ai_script"; then
+    pass "advanced scripts keep ambiguous storage and logs report-only"
+  else
+    fail "advanced scripts must label ambiguous storage findings as report-only"
   fi
 }
 
@@ -331,7 +459,7 @@ assert_skill_package_metadata() {
   fi
 
   if has_pattern 'license-MIT' README.md README.zh-CN.md \
-    && has_pattern 'version-0\.1\.5' README.md README.zh-CN.md \
+    && has_pattern 'version-0\.1\.6' README.md README.zh-CN.md \
     && has_pattern 'by-Chuluu' README.md README.zh-CN.md \
     && has_pattern 'Copyright \(c\) 2026 Chuluu' NOTICE LICENSE \
     && has_pattern 'Published on GitHub by ChuluuMGL' NOTICE \
@@ -367,10 +495,10 @@ assert_skill_package_metadata() {
     && has_pattern 'sample-report.md' README.md README.zh-CN.md \
     && has_pattern 'report-review-checklist.md' README.md README.zh-CN.md \
     && has_pattern 'release-guide.md' README.md README.zh-CN.md \
-    && has_pattern '0\.1\.5' CHANGELOG.md \
+    && has_pattern '0\.1\.6' CHANGELOG.md \
     && has_pattern '脱敏示例' examples/basic-maintenance/sample-report.md \
     && has_pattern '高风险' references/report-review-checklist.md \
-    && has_pattern 'v0\.1\.5' references/release-guide.md; then
+    && has_pattern 'v0\.1\.6' references/release-guide.md; then
     pass "release notes, sample report, report review checklist, and release guide are linked"
   else
     fail "README, metadata, changelog, sample report, review checklist, and release guide must stay linked"
@@ -384,7 +512,9 @@ assert_skill_package_metadata() {
   fi
   rm -f /tmp/mac-opt-release-ready.$$
 
-  if list_repo_pattern 'i[P]hone|[i]OS' >/tmp/mac-opt-phone-topic.$$ 2>/dev/null; then
+  if list_pattern 'i[P]hone|[i]OS' \
+    README.md README.zh-CN.md SKILL.md skill.json package.json \
+    .github/repository-metadata.json >/tmp/mac-opt-phone-topic.$$ 2>/dev/null; then
     cat /tmp/mac-opt-phone-topic.$$
     rm -f /tmp/mac-opt-phone-topic.$$
     fail "mac-optimizer publishing files must not mention phone optimization topics"
@@ -398,7 +528,7 @@ assert_runtime_package_outputs() {
   rm -rf dist
   if python3 scripts/package_runtime_skill.py >/tmp/mac-opt-package.$$ 2>&1 \
     && [[ -f "dist/mac-optimizer-skill.zip" ]] \
-    && [[ -f "dist/mac-optimizer-skill-0.1.5.zip" ]]; then
+    && [[ -f "dist/mac-optimizer-skill-0.1.6.zip" ]]; then
     pass "runtime package creates stable and versioned archives"
   else
     cat /tmp/mac-opt-package.$$
@@ -418,12 +548,19 @@ assert_runtime_package_outputs
 assert_no_script_hardcoded_install_path
 assert_common_options_present "04-自动化脚本/one-click-optimization.sh"
 assert_common_options_present "04-自动化脚本/quick-optimization.sh"
+assert_common_options_present "05-维护计划/monthly.sh"
 assert_optimizer_requires_diagnostic "04-自动化脚本/quick-optimization.sh"
 assert_optimizer_requires_diagnostic "04-自动化脚本/one-click-optimization.sh"
 assert_safe_dry_run_execution "04-自动化脚本/quick-optimization.sh"
 assert_safe_dry_run_execution "04-自动化脚本/one-click-optimization.sh"
+assert_safe_execution_preserves_user_files "04-自动化脚本/one-click-optimization.sh"
+assert_medium_risk_is_report_only
+assert_system_changes_are_opt_in
+assert_named_log_is_opt_in
+assert_named_log_behavior "04-自动化脚本/one-click-optimization.sh"
 assert_diagnostic_report_has_risk_recommendations
 assert_high_risk_not_auto_run
+assert_advanced_scripts_preserve_ambiguous_data
 assert_docs_are_current
 assert_shell_syntax $(find . -maxdepth 3 -name '*.sh' -print)
 assert_verify_runs

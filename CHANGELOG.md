@@ -4,7 +4,18 @@ All notable changes to Mac Optimizer Skill are tracked here.
 
 ## Unreleased
 
-No unreleased changes.
+## 0.1.6 - 2026-09-10
+
+- Made `--safe` cache-only: Trash, Downloads, broad logs, UI settings, DNS, app containers, and developer data are preserved.
+- Changed automatic Downloads, Trash, and broad-log cleanup into report-only findings.
+- Added seven-day Codex Crashpad cleanup plus before/after reclaimed-space reporting.
+- Added targeted storage-pressure reporting for WeChat documents, Xcode DeviceSupport, DerivedData, simulators, and Crashpad.
+- Replaced the destructive monthly script with diagnosis, safe maintenance, and verification orchestration.
+- Tightened health scoring for disks at or above 90% usage.
+- Made deep cleanup report-only for Downloads, project logs, Docker resources, and Time Machine snapshots.
+- Preserved n8n, ZAI, and Trae logs in the AI-tools cleanup flow and corrected its risk label.
+- Updated the runtime script suite version to 1.4.0.
+- Required explicit `--truncate-v2ray-log` opt-in before truncating the named v2ray log.
 
 ## 0.1.5 - 2026-07-08
 

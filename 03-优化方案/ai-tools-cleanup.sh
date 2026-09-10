@@ -2,7 +2,7 @@
 # AI工具缓存清理脚本
 # 用途: 清理各种AI开发工具的缓存和临时文件
 # 用法: ./ai-tools-cleanup.sh
-# 风险: 🟢 低风险（仅清理缓存，不影响数据）
+# 风险: 🟡 中风险（缓存可清理；执行历史和模型需额外确认）
 
 set -e
 
@@ -77,7 +77,7 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
     exit 0
 fi
 
-confirm_or_exit "将清理 AI 工具缓存、旧日志和部分执行历史，是否继续？"
+confirm_or_exit "将清理 AI 工具的可再生缓存；执行历史或模型仍会逐项确认，是否继续？"
 
 # 记录开始时间
 START_TIME=$(date +%s)
@@ -171,9 +171,9 @@ if [ -n "$N8N_DIRS" ] || [ -d ~/.n8n ]; then
                 fi
             fi
 
-            # 清理日志
-            find "$N8N_DIR" -name "*.log" -mtime +30 -delete 2>/dev/null
-            log "  ✓ n8n 日志已清理"
+            # 日志可能用于审计或故障恢复，只报告数量。
+            N8N_OLD_LOGS=$(find "$N8N_DIR" -name "*.log" -mtime +30 -type f 2>/dev/null | wc -l | tr -d ' ')
+            info "  [仅报告] n8n 30天以上日志: ${N8N_OLD_LOGS} 个"
         fi
     done
 else
@@ -265,9 +265,10 @@ if [ -d ~/.zai ]; then
     log "  ZAI 目录大小: ${ZAI_SIZE}"
 
     rm -rf ~/.zai/cache 2>/dev/null
-    rm -rf ~/.zai/logs/*.log 2>/dev/null
+    ZAI_LOGS=$(find ~/.zai/logs -maxdepth 1 -name "*.log" -type f 2>/dev/null | wc -l | tr -d ' ')
 
     log "  ✓ ZAI 缓存已清理"
+    info "  [仅报告] ZAI 日志: ${ZAI_LOGS} 个"
 else
     info "  - ZAI 未安装"
 fi
@@ -281,12 +282,11 @@ if [ -d ~/.trae ] || [ -d ~/.trae-aicc ]; then
     TRAE_SIZE=$(du -sh ~/.trae ~/.trae-aicc 2>/dev/null | awk '{sum+=$1} END {print sum}')
     log "  Trae IDE 目录大小: ${TRAE_SIZE}"
 
-    rm -rf ~/.trae/logs 2>/dev/null
-    rm -rf ~/.trae-aicc/logs 2>/dev/null
     rm -rf ~/.trae/cache 2>/dev/null
     rm -rf ~/.trae-aicc/cache 2>/dev/null
 
     log "  ✓ Trae IDE 缓存已清理"
+    info "  [仅报告] Trae IDE 日志已保留"
 else
     info "  - Trae IDE 未安装"
 fi
