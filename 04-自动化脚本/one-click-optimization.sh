@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../lib/common.sh
 source "$SCRIPT_DIR/../lib/common.sh"
 
-VERSION="1.4.0"
+VERSION="1.4.1"
 parse_common_args "$@"
 ensure_work_dirs
 LOG_FILE="$MAC_OPT_LOG_DIR/one-click-$(date +%Y%m%d-%H%M%S).log"
@@ -34,7 +34,6 @@ delete_dir_contents "$(path_in_home "Library/Caches/com.apple.Safari")" "Safari 
 log "[2/10] 常用应用缓存"
 delete_dir_contents "$(path_in_home "Library/Caches/com.alibaba.DingTalkMac")" "钉钉缓存"
 delete_dir_contents "$(path_in_home "Library/Caches/ru.keepcoder.Telegram")" "Telegram 缓存"
-delete_dir_contents "$(path_in_home "Library/Caches/Homebrew")" "Homebrew 缓存"
 delete_dir_contents "$(path_in_home "Library/Caches/node-gyp")" "node-gyp 缓存"
 
 log "[3/10] Codex 历史崩溃报告"
@@ -69,6 +68,9 @@ if command -v brew >/dev/null 2>&1; then
 else
   info "未找到 Homebrew，跳过。"
 fi
+# Homebrew cleanup can recreate API and bootsnap caches, so remove its
+# regenerable cache only after the cleanup command has finished.
+delete_dir_contents "$(path_in_home "Library/Caches/Homebrew")" "Homebrew 缓存"
 
 log "[7/10] 中风险项目仅报告"
 report_dir_state "$(path_in_home ".Trash")" "废纸篓"

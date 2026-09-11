@@ -8,7 +8,7 @@
 [中文说明](README.zh-CN.md) | English
 
 [![AI Skill](https://img.shields.io/badge/AI%20Skill-mac--optimizer-0E5E43)](./SKILL.md)
-[![Version](https://img.shields.io/badge/version-0.1.6-green)](./skill.json)
+[![Version](https://img.shields.io/badge/version-0.1.7-green)](./skill.json)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](./LICENSE)
 [![by Chuluu](https://img.shields.io/badge/by-Chuluu-0E5E43)](https://github.com/ChuluuMGL)
 [![Workflow](https://img.shields.io/badge/workflow-diagnosis--first-purple)](./SKILL.md)
@@ -92,7 +92,7 @@ python3 ./scripts/package_runtime_skill.py
 ```
 
 The generated package is written to `dist/mac-optimizer-skill.zip`.
-A versioned archive is also generated, for example `dist/mac-optimizer-skill-0.1.6.zip`.
+A versioned archive is also generated, for example `dist/mac-optimizer-skill-0.1.7.zip`.
 
 ### Install And Compatibility
 

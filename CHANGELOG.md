@@ -4,6 +4,12 @@ All notable changes to Mac Optimizer Skill are tracked here.
 
 ## Unreleased
 
+## 0.1.7 - 2026-09-11
+
+- Moved Homebrew cache removal after `brew cleanup` so API and bootsnap caches recreated by Homebrew do not remain after a safe run.
+- Added a regression test that verifies Homebrew-created cache files are removed without widening the safe-cleanup boundary.
+- Updated the runtime script suite version to 1.4.1.
+
 ## 0.1.6 - 2026-09-10
 
 - Made `--safe` cache-only: Trash, Downloads, broad logs, UI settings, DNS, app containers, and developer data are preserved.

@@ -212,6 +212,41 @@ assert_medium_risk_is_report_only() {
   fi
 }
 
+assert_homebrew_cache_is_removed_after_cleanup() {
+  local tmp
+  tmp="$(mktemp -d)"
+  mkdir -p "$tmp/bin" "$tmp/home/Library/Caches/Homebrew" "$tmp/logs" "$tmp/data"
+  printf 'old cache\n' > "$tmp/home/Library/Caches/Homebrew/old-cache.txt"
+  printf '{"date":"test","score":90}\n' > "$tmp/data/check-latest.json"
+
+  cat > "$tmp/bin/brew" <<'EOF'
+#!/usr/bin/env bash
+mkdir -p "$HOME/Library/Caches/Homebrew/api"
+printf 'regenerated cache\n' > "$HOME/Library/Caches/Homebrew/api/regenerated.txt"
+EOF
+  chmod +x "$tmp/bin/brew"
+
+  if ! HOME="$tmp/home" MAC_OPT_USER_HOME="$tmp/home" \
+    MAC_OPT_LOG_DIR="$tmp/logs" MAC_OPT_DATA_DIR="$tmp/data" \
+    MAC_OPT_NO_CLEAR=1 PATH="$tmp/bin:/usr/bin:/bin" \
+    bash "04-自动化脚本/one-click-optimization.sh" --safe --yes \
+    >/tmp/mac-opt-homebrew-order.$$ 2>&1; then
+    cat /tmp/mac-opt-homebrew-order.$$
+    rm -rf "$tmp" /tmp/mac-opt-homebrew-order.$$
+    fail "one-click safe execution supports Homebrew cache ordering test"
+    return
+  fi
+
+  if [[ -z "$(find "$tmp/home/Library/Caches/Homebrew" -mindepth 1 -print -quit)" ]]; then
+    pass "Homebrew cache is removed after brew cleanup recreates cache files"
+  else
+    find "$tmp/home/Library/Caches/Homebrew" -mindepth 1 -print
+    fail "Homebrew cache removal must run after brew cleanup"
+  fi
+
+  rm -rf "$tmp" /tmp/mac-opt-homebrew-order.$$
+}
+
 assert_system_changes_are_opt_in() {
   if has_pattern 'TUNE_UI' 04-自动化脚本/one-click-optimization.sh \
     && has_pattern 'FLUSH_DNS' 04-自动化脚本/one-click-optimization.sh \
@@ -459,7 +494,7 @@ assert_skill_package_metadata() {
   fi
 
   if has_pattern 'license-MIT' README.md README.zh-CN.md \
-    && has_pattern 'version-0\.1\.6' README.md README.zh-CN.md \
+    && has_pattern 'version-0\.1\.7' README.md README.zh-CN.md \
     && has_pattern 'by-Chuluu' README.md README.zh-CN.md \
     && has_pattern 'Copyright \(c\) 2026 Chuluu' NOTICE LICENSE \
     && has_pattern 'Published on GitHub by ChuluuMGL' NOTICE \
@@ -495,10 +530,10 @@ assert_skill_package_metadata() {
     && has_pattern 'sample-report.md' README.md README.zh-CN.md \
     && has_pattern 'report-review-checklist.md' README.md README.zh-CN.md \
     && has_pattern 'release-guide.md' README.md README.zh-CN.md \
-    && has_pattern '0\.1\.6' CHANGELOG.md \
+    && has_pattern '0\.1\.7' CHANGELOG.md \
     && has_pattern '脱敏示例' examples/basic-maintenance/sample-report.md \
     && has_pattern '高风险' references/report-review-checklist.md \
-    && has_pattern 'v0\.1\.6' references/release-guide.md; then
+    && has_pattern 'v0\.1\.7' references/release-guide.md; then
     pass "release notes, sample report, report review checklist, and release guide are linked"
   else
     fail "README, metadata, changelog, sample report, review checklist, and release guide must stay linked"
@@ -528,7 +563,7 @@ assert_runtime_package_outputs() {
   rm -rf dist
   if python3 scripts/package_runtime_skill.py >/tmp/mac-opt-package.$$ 2>&1 \
     && [[ -f "dist/mac-optimizer-skill.zip" ]] \
-    && [[ -f "dist/mac-optimizer-skill-0.1.6.zip" ]]; then
+    && [[ -f "dist/mac-optimizer-skill-0.1.7.zip" ]]; then
     pass "runtime package creates stable and versioned archives"
   else
     cat /tmp/mac-opt-package.$$
@@ -555,6 +590,7 @@ assert_safe_dry_run_execution "04-自动化脚本/quick-optimization.sh"
 assert_safe_dry_run_execution "04-自动化脚本/one-click-optimization.sh"
 assert_safe_execution_preserves_user_files "04-自动化脚本/one-click-optimization.sh"
 assert_medium_risk_is_report_only
+assert_homebrew_cache_is_removed_after_cleanup
 assert_system_changes_are_opt_in
 assert_named_log_is_opt_in
 assert_named_log_behavior "04-自动化脚本/one-click-optimization.sh"

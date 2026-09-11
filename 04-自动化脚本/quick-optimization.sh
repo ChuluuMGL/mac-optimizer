@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../lib/common.sh
 source "$SCRIPT_DIR/../lib/common.sh"
 
-VERSION="1.4.0"
+VERSION="1.4.1"
 parse_common_args "$@"
 
 ARGS=(--safe)
