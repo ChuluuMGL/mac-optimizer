@@ -43,7 +43,11 @@ elif awk "BEGIN { exit !($FREE_SPACE_GB < 50) }"; then
   SCORE=$((SCORE - 15))
 fi
 
-MEMORY_GB="$(sysctl -n hw.memsize | awk '{printf "%.1f", $1/1024/1024/1024}')"
+MEMORY_BYTES="$(sysctl -n hw.memsize 2>/dev/null || true)"
+MEMORY_GB="$(printf '%s\n' "$MEMORY_BYTES" | awk '/^[0-9]+$/ {printf "%.1f", $1/1024/1024/1024}')"
+[[ -n "$MEMORY_GB" ]] || MEMORY_GB="N/A"
+CPU_CORES="$(sysctl -n hw.ncpu 2>/dev/null | awk '/^[0-9]+$/ {print; exit}' || true)"
+[[ "$CPU_CORES" =~ ^[0-9]+$ ]] || CPU_CORES=0
 
 # === 预计算各节内容 ===
 # 重型命令一律经 scan() 超时包装；每节独立容错（|| true），
@@ -101,7 +105,27 @@ SQLITE_OUT="$(scan find "$MAC_OPT_USER_HOME" -xdev \
 
 NODE_MODULES_OUT="$(scan find "$MAC_OPT_USER_HOME/Documents" -maxdepth 4 -name "node_modules" -type d 2>/dev/null | xargs -I {} du -sh {} 2>/dev/null | sort -hr | head -10 || true)"
 
-VMSTAT_OUT="$(vm_stat | perl -ne '/Pages free:\s+(\d+)/ and $free=$1; /Pages inactive:\s+(\d+)/ and $inactive=$1; /Pages active:\s+(\d+)/ and $active=$1; /Pages speculative:\s+(\d+)/ and $spec=$1; /Pages wired:\s+(\d+)/ and $wired=$1; END { $ps=4096; printf "可用: %.2f GB\n非活跃: %.2f GB\n活跃: %.2f GB\nSpeculative: %.2f GB\nWired: %.2f GB", ($free+$spec)*$ps/1024/1024/1024, $inactive*$ps/1024/1024/1024, $active*$ps/1024/1024/1024, $spec*$ps/1024/1024/1024, $wired*$ps/1024/1024/1024 }' || true)"
+VMSTAT_OUT="$(vm_stat 2>/dev/null | awk '
+  /page size of [0-9]+ bytes/ {
+    line = $0
+    sub(/^.*page size of /, "", line)
+    sub(/ bytes.*/, "", line)
+    page_size = line + 0
+  }
+  /^Pages free:/ { free = $3 + 0 }
+  /^Pages inactive:/ { inactive = $3 + 0 }
+  /^Pages active:/ { active = $3 + 0 }
+  /^Pages speculative:/ { speculative = $3 + 0 }
+  /^Pages wired/ { wired = $NF + 0 }
+  END {
+    if (page_size <= 0) {
+      print "内存统计不可用"
+      exit
+    }
+    gib = 1024 * 1024 * 1024
+    printf "空闲（free+speculative）: %.2f GB\n非活跃: %.2f GB\n活跃: %.2f GB\nSpeculative: %.2f GB\nWired: %.2f GB", (free+speculative)*page_size/gib, inactive*page_size/gib, active*page_size/gib, speculative*page_size/gib, wired*page_size/gib
+  }
+' || true)"
 
 MEM_TOP_OUT="$(ps aux | sort -rk 4 | head -10 | awk '{printf "%-6s %6s %s\n", $3"%", $4"%", $11}' || true)"
 CPU_TOP_OUT="$(ps aux | sort -rk 3 | head -10 | awk '{printf "%-6s %6s %s\n", $3"%", $4"%", $11}' || true)"
@@ -323,7 +347,7 @@ cat >> "$REPORT_FILE" << SECTION7
 |------|------|------|
 | 数据卷健康 | $DISK_HEALTH | 使用率: $DISK_USAGE% |
 | 可用空间 | $FREE_WORD | ${FREE_SPACE_GB}GB 可用 |
-| 内存容量 | ${MEMORY_GB}GB | 按当前硬件读取 |
+| 内存容量 | ${MEMORY_GB} GB | 按当前硬件读取 |
 | 总体评分 | $SCORE/100 | $SCORE_WORD |
 SECTION7
 
@@ -389,7 +413,7 @@ cat > "$DATA_FILE" << EOF
   "score": $SCORE,
   "network_diagnostics_enabled": $([[ "$NETWORK_DIAGNOSTICS" -eq 1 ]] && printf true || printf false),
   "memory_gb": "$MEMORY_GB",
-  "cpu_cores": $(sysctl -n hw.ncpu)
+  "cpu_cores": $CPU_CORES
 }
 EOF
 

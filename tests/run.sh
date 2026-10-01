@@ -329,13 +329,31 @@ assert_optimizer_requires_diagnostic() {
 assert_diagnostic_report_has_risk_recommendations() {
   local tmp
   tmp="$(mktemp -d)"
+  mkdir -p "$tmp/bin"
   mkdir -p "$tmp/home/Documents" "$tmp/home/Downloads" "$tmp/home/Desktop" \
     "$tmp/home/Movies" "$tmp/home/Music" "$tmp/home/Pictures" \
     "$tmp/home/Library/Caches/SampleApp" "$tmp/home/Library/Logs" \
     "$tmp/logs" "$tmp/data"
   printf 'sample\n' > "$tmp/home/Library/Caches/SampleApp/cache.txt"
 
-  HOME="$tmp/home" MAC_OPT_USER_HOME="$tmp/home" MAC_OPT_LOG_DIR="$tmp/logs" MAC_OPT_DATA_DIR="$tmp/data" bash ./01-检查脚本/full-check.sh --yes >/tmp/mac-opt-check.$$ 2>&1 || {
+  cat > "$tmp/bin/sysctl" <<'EOF'
+#!/bin/sh
+exit 1
+EOF
+  cat > "$tmp/bin/vm_stat" <<'EOF'
+#!/bin/sh
+cat <<'VMSTAT'
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                               32768.
+Pages inactive:                           65536.
+Pages active:                            131072.
+Pages speculative:                       32768.
+Pages wired down:                        262144.
+VMSTAT
+EOF
+  chmod +x "$tmp/bin/sysctl" "$tmp/bin/vm_stat"
+
+  PATH="$tmp/bin:$PATH" HOME="$tmp/home" MAC_OPT_USER_HOME="$tmp/home" MAC_OPT_LOG_DIR="$tmp/logs" MAC_OPT_DATA_DIR="$tmp/data" bash ./01-检查脚本/full-check.sh --yes >/tmp/mac-opt-check.$$ 2>&1 || {
     cat /tmp/mac-opt-check.$$
     rm -rf "$tmp" /tmp/mac-opt-check.$$
     fail "full-check must generate a diagnostic report"
@@ -355,6 +373,10 @@ assert_diagnostic_report_has_risk_recommendations() {
     && has_pattern '风险分级优化建议' "$report" \
     && has_pattern '网络诊断（可选，只读）' "$report" \
     && has_pattern '默认全盘检查不会联网.*--network' "$report" \
+    && has_pattern '空闲（free\+speculative）: 1\.00 GB' "$report" \
+    && has_pattern '非活跃: 1\.00 GB' "$report" \
+    && has_pattern 'Wired: 4\.00 GB' "$report" \
+    && has_pattern '内存容量 \| N/A GB' "$report" \
     && has_pattern '低风险' "$report" \
     && has_pattern '中风险' "$report" \
     && has_pattern '高风险' "$report" \
