@@ -1,8 +1,8 @@
 {
   "name": "mac-optimizer",
   "display_name": "Mac Optimizer",
-  "description": "Diagnose macOS storage, cache, logs, startup items, developer-tool residue, and routine maintenance needs with a diagnosis-first workflow, dry-run previews, risk-ranked recommendations, safe cleanup scripts, rollback guidance, and high-risk manual review boundaries.",
-  "version": "0.1.7",
+  "description": "Diagnose macOS storage, caches, network connectivity, startup items, and routine maintenance needs with a diagnosis-first workflow, opt-in read-only network probes, dry-run previews, risk-ranked recommendations, and safe cleanup boundaries.",
+  "version": "0.1.8",
   "author": "Chuluu",
   "copyright": "Copyright (c) 2026 Chuluu",
   "maintainer": {
@@ -43,6 +43,7 @@
   ],
   "outputs": [
     "macOS diagnostic report",
+    "Opt-in read-only network connectivity report",
     "Health score",
     "Low, medium, and high risk recommendations",
     "Dry-run cleanup preview",
@@ -80,7 +81,7 @@
     {
       "name": "diagnose",
       "path": "01-检查脚本/full-check.sh",
-      "description": "Generates the read-only macOS diagnostic report and latest recommendation data."
+      "description": "Generates the read-only macOS report; pass --network for explicit DNS and HTTPS connectivity probes."
     },
     {
       "name": "quick",

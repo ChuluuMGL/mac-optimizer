@@ -4,6 +4,12 @@ All notable changes to Mac Optimizer Skill are tracked here.
 
 ## Unreleased
 
+## 0.1.8 - 2026-10-01
+
+- Added opt-in `full-check.sh --network` diagnostics for the default route, gateway packet loss/latency, macOS DNS resolution, direct HTTPS, and configured proxy connectivity.
+- Kept network probes disabled by default, redacted local/proxy addresses, and excluded network status from the disk health score.
+- Added deterministic mock-based network tests and bumped the runtime script suite to 1.4.2.
+
 ## 0.1.7 - 2026-09-11
 
 - Moved Homebrew cache removal after `brew cleanup` so API and bootsnap caches recreated by Homebrew do not remain after a safe run.

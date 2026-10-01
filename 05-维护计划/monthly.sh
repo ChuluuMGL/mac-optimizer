@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../lib/common.sh
 source "$SCRIPT_DIR/../lib/common.sh"
 
-VERSION="1.4.1"
+VERSION="1.4.2"
 parse_common_args "$@"
 ensure_work_dirs
 LOG_FILE="$MAC_OPT_LOG_DIR/monthly-$(date +%Y%m%d-%H%M%S).log"
@@ -18,7 +18,9 @@ log "开始月度维护编排。"
 log "版本: $VERSION"
 
 log "[1/3] 生成最新只读诊断报告。"
-MAC_OPT_NO_CLEAR=1 bash "$MAC_OPT_ROOT/01-检查脚本/full-check.sh" --yes | tee -a "$LOG_FILE"
+DIAGNOSTIC_ARGS=(--yes)
+[[ "$NETWORK_DIAGNOSTICS" -eq 1 ]] && DIAGNOSTIC_ARGS+=(--network)
+MAC_OPT_NO_CLEAR=1 bash "$MAC_OPT_ROOT/01-检查脚本/full-check.sh" "${DIAGNOSTIC_ARGS[@]}" | tee -a "$LOG_FILE"
 
 log "[2/3] 运行安全维护。"
 ARGS=(--safe)

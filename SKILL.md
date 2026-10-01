@@ -1,6 +1,6 @@
 ---
 name: mac-optimizer
-description: Use when a user wants to diagnose or safely optimize macOS storage, caches, startup items, logs, developer-tool residue, or routine Mac maintenance with risk-aware recommendations.
+description: Use when a user wants to diagnose macOS storage, network connectivity, caches, startup items, logs, developer-tool residue, or routine Mac maintenance with risk-aware recommendations.
 ---
 
 # Mac Optimizer
@@ -21,6 +21,7 @@ Use this skill when the user asks to:
 - 按风险等级给出优化建议。
 - 做日常或月度 Mac 维护。
 - 判断某个优化动作是否安全。
+- 只读检查 DNS、网关、HTTPS 或代理连通性。
 
 ## Operating Rules
 
@@ -34,6 +35,7 @@ Use this skill when the user asks to:
 | 保守默认 | Prefer `--safe` when the user wants minimal risk. |
 | 自动边界 | Automatic flows may clean regenerable caches and old Crashpad reports, but must only report Trash, Downloads, broad logs, app containers, and developer data. |
 | 隐私保护 | Do not expose private file contents, secrets, or personal paths beyond what is needed for the report summary. |
+| 网络探测 | 外部 DNS/HTTPS 探测必须显式使用 `--network`；只报告结果，不修改网络设置，也不并入磁盘健康分。 |
 
 ## Workflow
 
@@ -59,6 +61,7 @@ See `references/risk-model.md`, `references/report-review-checklist.md`, and `re
 
 ```bash
 bash ./01-检查脚本/full-check.sh
+bash ./01-检查脚本/full-check.sh --network
 bash ./04-自动化脚本/one-click-optimization.sh --dry-run
 bash ./04-自动化脚本/one-click-optimization.sh --safe
 bash ./04-自动化脚本/quick-optimization.sh --dry-run

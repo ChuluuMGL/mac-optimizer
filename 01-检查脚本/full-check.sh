@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../lib/common.sh
 source "$SCRIPT_DIR/../lib/common.sh"
 
-VERSION="1.4.1"
+VERSION="1.4.2"
 parse_common_args "$@"
 ensure_work_dirs
 
@@ -109,6 +109,13 @@ CPU_TOP_OUT="$(ps aux | sort -rk 3 | head -10 | awk '{printf "%-6s %6s %s\n", $3
 CACHE_OUT="$(scan du -sh "$MAC_OPT_USER_HOME/Library/Caches"/* 2>/dev/null | sort -hr | head -10 || true)"
 BIG_LOGS_OUT="$(scan find "$MAC_OPT_USER_HOME/Library/Logs" -name "*.log" -size +50M 2>/dev/null | head -10 || true)"
 
+if [[ "$NETWORK_DIAGNOSTICS" -eq 1 ]]; then
+  NETWORK_OUT="$(scan bash "$MAC_OPT_ROOT/lib/network_diagnostics.sh" 2>/dev/null || true)"
+  [[ -n "$NETWORK_OUT" ]] || NETWORK_OUT="网络诊断未能运行；请检查系统网络命令是否可用后重试。"
+else
+  NETWORK_OUT="未运行。默认全盘检查不会联网；如需 DNS 和 HTTPS 连通性抽样，请显式追加 --network。"
+fi
+
 LAUNCHCTL_COUNT="$(launchctl list | grep -v "0x\|com.apple\|pid" | wc -l | xargs || true)"
 TM_SNAPSHOTS_OUT="$(scan tmutil listlocalsnapshots / 2>/dev/null | head -10 || true)"
 
@@ -177,6 +184,15 @@ cat >> "$REPORT_FILE" << SECTION1
 | 电池循环 | ${CYCLE_COUNT:-N/A} |
 | 电池状态 | ${BATTERY_CONDITION:-N/A} |
 SECTION1
+
+cat >> "$REPORT_FILE" << NETWORK_SECTION
+
+### 网络诊断（可选，只读）
+
+${NETWORK_OUT}
+
+> 网络结果是独立的短时抽样，不计入磁盘健康分；不会显示本地 IP、Wi-Fi 名称或代理地址，也不会修改 DNS、代理或网络设置。
+NETWORK_SECTION
 
 cat >> "$REPORT_FILE" << SECTION2
 
@@ -371,6 +387,7 @@ cat > "$DATA_FILE" << EOF
   "disk_usage_percent": $DISK_USAGE,
   "free_space_gb": "$FREE_SPACE_GB",
   "score": $SCORE,
+  "network_diagnostics_enabled": $([[ "$NETWORK_DIAGNOSTICS" -eq 1 ]] && printf true || printf false),
   "memory_gb": "$MEMORY_GB",
   "cpu_cores": $(sysctl -n hw.ncpu)
 }

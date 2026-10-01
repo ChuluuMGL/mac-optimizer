@@ -1,14 +1,14 @@
 # Mac Optimizer Skill
 
 > **面向 AI Agent 的 Mac 诊断与优化 Skill**  
-> 一个开源 Agent Skill，用于安全地生成 Mac 本地诊断报告、预览存储清理动作，并按风险等级给出可选优化建议。
+> 一个开源 Agent Skill，用于安全地生成 Mac 本地诊断报告、按需检查网络连通性、预览存储清理动作，并按风险等级给出可选优化建议。
 >
 > 由 **Chuluu** 创建和维护。
 
 中文 | [English](README.md)
 
 [![AI Skill](https://img.shields.io/badge/AI%20Skill-mac--optimizer-0E5E43)](./SKILL.md)
-[![Version](https://img.shields.io/badge/version-0.1.7-green)](./skill.json)
+[![Version](https://img.shields.io/badge/version-0.1.8-green)](./skill.json)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](./LICENSE)
 [![by Chuluu](https://img.shields.io/badge/by-Chuluu-0E5E43)](https://github.com/ChuluuMGL)
 [![Workflow](https://img.shields.io/badge/workflow-diagnosis--first-purple)](./SKILL.md)
@@ -45,6 +45,14 @@ scripts/install.sh codex
 ```bash
 bash ./01-检查脚本/full-check.sh
 ```
+
+网络探测默认关闭，因为它会访问外部站点。需要在报告中加入 DNS、网关、直连 HTTPS 和系统代理的短时只读检查时，显式添加 `--network`：
+
+```bash
+bash ./01-检查脚本/full-check.sh --network
+```
+
+报告只显示连通结果和耗时，不显示本地 IP、Wi-Fi 名称或代理地址；网络结果不计入磁盘健康分，也不会更改 DNS、代理或网络设置。
 
 诊断报告会生成风险分级建议。看完报告后，预览一键优化会做什么：
 
@@ -98,7 +106,7 @@ python3 ./scripts/package_runtime_skill.py
 ```
 
 输出文件会生成在 `dist/mac-optimizer-skill.zip`。
-同时也会生成版本化文件，例如 `dist/mac-optimizer-skill-0.1.7.zip`。
+同时也会生成版本化文件，例如 `dist/mac-optimizer-skill-0.1.8.zip`。
 
 ### 安装与兼容性
 
@@ -125,6 +133,7 @@ python3 ./scripts/package_runtime_skill.py
 ## 入口脚本
 
 - `01-检查脚本/full-check.sh`: 只读系统检查和报告。
+- `lib/network_diagnostics.sh`: 由 `full-check.sh --network` 显式调用的只读网络探测。
 - `04-自动化脚本/quick-optimization.sh`: 日常快速维护。
 - `04-自动化脚本/one-click-optimization.sh`: 常规维护入口。
 - `04-自动化脚本/verify.sh`: 只读验证工具本身是否完整。

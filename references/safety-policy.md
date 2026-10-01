@@ -12,6 +12,7 @@ Mac Optimizer follows a diagnosis-first safety model.
 - In automatic flows, treat Trash, Downloads, broad application logs, app containers, and developer data as report-only.
 - Require `--tune-ui`, `--flush-dns`, or `--truncate-v2ray-log` before the corresponding UI, DNS, or named-log action.
 - Keep generated logs and data in `logs/` and `data/`.
+- Run DNS/HTTPS connectivity probes only when `full-check.sh --network` is explicitly requested; never change DNS, proxy, routes, or Wi-Fi settings as part of a diagnostic.
 
 ## Automatic Cleanup Boundary
 

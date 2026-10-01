@@ -353,6 +353,8 @@ assert_diagnostic_report_has_risk_recommendations() {
   report="$(find "$tmp/logs" -name 'check-report-*.md' -print | head -1)"
   if [[ -n "$report" ]] \
     && has_pattern '风险分级优化建议' "$report" \
+    && has_pattern '网络诊断（可选，只读）' "$report" \
+    && has_pattern '默认全盘检查不会联网.*--network' "$report" \
     && has_pattern '低风险' "$report" \
     && has_pattern '中风险' "$report" \
     && has_pattern '高风险' "$report" \
@@ -365,6 +367,62 @@ assert_diagnostic_report_has_risk_recommendations() {
   fi
 
   rm -rf "$tmp" /tmp/mac-opt-check.$$
+}
+
+assert_network_diagnostics_are_opt_in_and_sanitized() {
+  local tmp output help
+  tmp="$(mktemp -d)"
+  mkdir -p "$tmp/bin"
+
+  cat > "$tmp/bin/route" <<'EOF'
+#!/bin/sh
+printf 'gateway: 192.0.2.1\ninterface: en0\n'
+EOF
+  cat > "$tmp/bin/ping" <<'EOF'
+#!/bin/sh
+printf '5 packets transmitted, 5 packets received, 0.0%% packet loss\n'
+printf 'round-trip min/avg/max/stddev = 1.000/2.000/3.000/0.500 ms\n'
+EOF
+  cat > "$tmp/bin/dscacheutil" <<'EOF'
+#!/bin/sh
+printf 'name: test\nip_address: 192.0.2.80\n'
+EOF
+  cat > "$tmp/bin/scutil" <<'EOF'
+#!/bin/sh
+cat <<'PROXY'
+HTTPSEnable : 1
+HTTPSProxy : 127.0.0.1
+HTTPSPort : 7890
+PROXY
+EOF
+  cat > "$tmp/bin/curl" <<'EOF'
+#!/bin/sh
+printf '200|0.125000\n'
+EOF
+  chmod +x "$tmp/bin/route" "$tmp/bin/ping" "$tmp/bin/dscacheutil" "$tmp/bin/scutil" "$tmp/bin/curl"
+
+  help="$(bash ./01-检查脚本/full-check.sh --help 2>&1)"
+  if [[ "$help" == *"--network"* ]]; then
+    pass "full-check exposes explicit --network opt-in"
+  else
+    fail "full-check must document the --network opt-in"
+  fi
+
+  output="$(PATH="$tmp/bin:/usr/bin:/bin" bash ./lib/network_diagnostics.sh 2>&1)"
+  if [[ "$output" == *"apple.com 成功"* \
+    && "$output" == *"cloudflare.com 成功"* \
+    && "$output" == *"直连 Apple：已收到 HTTP 响应（HTTP 200"* \
+    && "$output" == *"当前系统代理（地址隐藏）：已收到 HTTP 响应（HTTP 200"* \
+    && "$output" == *"未见整体断网"* \
+    && "$output" != *"192.0.2."* \
+    && "$output" != *"127.0.0.1"* ]]; then
+    pass "network report classifies mocked success and redacts addresses"
+  else
+    printf '%s\n' "$output"
+    fail "network report must classify results and redact local/proxy addresses"
+  fi
+
+  rm -rf "$tmp"
 }
 
 assert_high_risk_not_auto_run() {
@@ -444,6 +502,7 @@ assert_skill_package_metadata() {
     "NOTICE"
     "TESTING.md"
     "agents/openai.yaml"
+    "lib/network_diagnostics.sh"
     "references/safety-policy.md"
     "references/risk-model.md"
     "references/diagnostic-report-contract.md"
@@ -494,7 +553,7 @@ assert_skill_package_metadata() {
   fi
 
   if has_pattern 'license-MIT' README.md README.zh-CN.md \
-    && has_pattern 'version-0\.1\.7' README.md README.zh-CN.md \
+    && has_pattern 'version-0\.1\.8' README.md README.zh-CN.md \
     && has_pattern 'by-Chuluu' README.md README.zh-CN.md \
     && has_pattern 'Copyright \(c\) 2026 Chuluu' NOTICE LICENSE \
     && has_pattern 'Published on GitHub by ChuluuMGL' NOTICE \
@@ -530,10 +589,10 @@ assert_skill_package_metadata() {
     && has_pattern 'sample-report.md' README.md README.zh-CN.md \
     && has_pattern 'report-review-checklist.md' README.md README.zh-CN.md \
     && has_pattern 'release-guide.md' README.md README.zh-CN.md \
-    && has_pattern '0\.1\.7' CHANGELOG.md \
+    && has_pattern '0\.1\.8' CHANGELOG.md \
     && has_pattern '脱敏示例' examples/basic-maintenance/sample-report.md \
     && has_pattern '高风险' references/report-review-checklist.md \
-    && has_pattern 'v0\.1\.7' references/release-guide.md; then
+    && has_pattern 'v0\.1\.8' references/release-guide.md; then
     pass "release notes, sample report, report review checklist, and release guide are linked"
   else
     fail "README, metadata, changelog, sample report, review checklist, and release guide must stay linked"
@@ -563,7 +622,7 @@ assert_runtime_package_outputs() {
   rm -rf dist
   if python3 scripts/package_runtime_skill.py >/tmp/mac-opt-package.$$ 2>&1 \
     && [[ -f "dist/mac-optimizer-skill.zip" ]] \
-    && [[ -f "dist/mac-optimizer-skill-0.1.7.zip" ]]; then
+    && [[ -f "dist/mac-optimizer-skill-0.1.8.zip" ]]; then
     pass "runtime package creates stable and versioned archives"
   else
     cat /tmp/mac-opt-package.$$
@@ -573,6 +632,7 @@ assert_runtime_package_outputs() {
 }
 
 assert_file "lib/common.sh"
+assert_file "lib/network_diagnostics.sh"
 assert_file "README.md"
 assert_file "00-系统概览/README.md"
 assert_file "04-自动化脚本/verify.sh"
@@ -595,6 +655,7 @@ assert_system_changes_are_opt_in
 assert_named_log_is_opt_in
 assert_named_log_behavior "04-自动化脚本/one-click-optimization.sh"
 assert_diagnostic_report_has_risk_recommendations
+assert_network_diagnostics_are_opt_in_and_sanitized
 assert_high_risk_not_auto_run
 assert_advanced_scripts_preserve_ambiguous_data
 assert_docs_are_current

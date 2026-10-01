@@ -5,6 +5,7 @@ Use this model when adding or reviewing recommendations.
 | Risk | Definition | Examples | Allowed automation |
 |------|------------|----------|--------------------|
 | Low | Reversible or naturally regenerated data with low user impact. | Browser caches, old logs, DNS cache, package manager caches. | May be previewed and optionally executed. |
+| Informational | Read-only observation with no setting changes. | Opt-in DNS, gateway, HTTPS, and proxy connectivity probes. | Run only when explicitly requested; do not combine with the disk health score. |
 | Medium | User-visible data or preferences where mistakes are annoying but usually recoverable. | Trash cleanup, old downloads, Dock/animation preferences. | Requires dry-run and clear confirmation. |
 | High | Data loss, backup integrity, developer environment breakage, or system behavior changes are plausible. | Time Machine snapshots, Docker volumes, simulator erase, system services, power policy. | Report only; do not auto-run. |
 

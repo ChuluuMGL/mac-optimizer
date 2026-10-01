@@ -6,6 +6,7 @@ The diagnostic report is the source of truth for optimization suggestions.
 
 - Check time, tool version, macOS version, model, and data volume.
 - System overview: CPU, memory, disk size, free space, disk usage, battery basics when available.
+- Optional network section when explicitly requested with `--network`; include route, gateway, DNS, and HTTPS status without exposing local or proxy addresses.
 - Disk usage analysis.
 - Memory and process overview.
 - Cache and log overview.
@@ -35,3 +36,5 @@ Every recommendation should include:
 - Whether it is allowed in automatic flows.
 
 High-risk recommendations must say that they are not automatically executed.
+
+Network probes are disabled by default, must not change network settings, and must not affect the disk health score. State clearly when they were skipped.

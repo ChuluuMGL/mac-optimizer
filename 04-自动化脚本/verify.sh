@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../lib/common.sh
 source "$SCRIPT_DIR/../lib/common.sh"
 
-VERSION="1.4.1"
+VERSION="1.4.2"
 parse_common_args "$@"
 ensure_work_dirs
 LOG_FILE="$MAC_OPT_LOG_DIR/verify-$(date +%Y%m%d-%H%M%S).log"
@@ -22,6 +22,7 @@ log "数据卷使用率: $(disk_capacity_percent)"
 
 REQUIRED_FILES=(
   "lib/common.sh"
+  "lib/network_diagnostics.sh"
   "01-检查脚本/full-check.sh"
   "04-自动化脚本/one-click-optimization.sh"
   "04-自动化脚本/quick-optimization.sh"

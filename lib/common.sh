@@ -18,6 +18,7 @@ FULL_PATHS=0
 TUNE_UI=0
 FLUSH_DNS=0
 TRUNCATE_V2RAY_LOG=0
+NETWORK_DIAGNOSTICS=0
 EXTRA_ARGS=()
 
 RED='\033[0;31m'
@@ -37,6 +38,8 @@ Common options:
   --flush-dns     Opt in to refreshing DNS caches (may require sudo).
   --truncate-v2ray-log
                   Opt in to truncating the specifically named v2ray log.
+  --network       Opt in to read-only DNS and HTTPS connectivity probes
+                  when generating a diagnostic report.
   --help, -h      Show this help.
 EOF
 }
@@ -71,6 +74,10 @@ parse_common_args() {
         ;;
       --truncate-v2ray-log)
         TRUNCATE_V2RAY_LOG=1
+        shift
+        ;;
+      --network)
+        NETWORK_DIAGNOSTICS=1
         shift
         ;;
       --help|-h)

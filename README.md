@@ -1,14 +1,14 @@
 # Mac Optimizer Skill
 
 > **Diagnosis-first macOS maintenance Skill for AI Agents**  
-> An open-source Agent Skill for safe local Mac diagnostics, storage cleanup previews, health reports, and risk-ranked optimization recommendations.
+> An open-source Agent Skill for safe local Mac diagnostics, opt-in network connectivity checks, storage cleanup previews, and risk-ranked recommendations.
 >
 > Created and maintained by **Chuluu**.
 
 [中文说明](README.zh-CN.md) | English
 
 [![AI Skill](https://img.shields.io/badge/AI%20Skill-mac--optimizer-0E5E43)](./SKILL.md)
-[![Version](https://img.shields.io/badge/version-0.1.7-green)](./skill.json)
+[![Version](https://img.shields.io/badge/version-0.1.8-green)](./skill.json)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](./LICENSE)
 [![by Chuluu](https://img.shields.io/badge/by-Chuluu-0E5E43)](https://github.com/ChuluuMGL)
 [![Workflow](https://img.shields.io/badge/workflow-diagnosis--first-purple)](./SKILL.md)
@@ -45,6 +45,14 @@ Run the read-only diagnostic report first:
 ```bash
 bash ./01-检查脚本/full-check.sh
 ```
+
+Network probes are opt-in because they contact external hosts. To add short DNS, gateway, direct HTTPS, and configured-proxy checks to the report, run:
+
+```bash
+bash ./01-检查脚本/full-check.sh --network
+```
+
+The network section hides local IPs, Wi-Fi names, and proxy addresses; it does not change settings or affect the disk health score.
 
 Preview the standard maintenance flow:
 
@@ -92,7 +100,7 @@ python3 ./scripts/package_runtime_skill.py
 ```
 
 The generated package is written to `dist/mac-optimizer-skill.zip`.
-A versioned archive is also generated, for example `dist/mac-optimizer-skill-0.1.7.zip`.
+A versioned archive is also generated, for example `dist/mac-optimizer-skill-0.1.8.zip`.
 
 ### Install And Compatibility
 
@@ -122,6 +130,7 @@ You can ask a coding agent:
 - `skill.json`: Machine-readable metadata for GitHub and skill registries.
 - `CHANGELOG.md`: Version history and release notes.
 - `01-检查脚本/full-check.sh`: Read-only macOS diagnostic report.
+- `lib/network_diagnostics.sh`: Opt-in read-only network probe used by `full-check.sh --network`.
 - `04-自动化脚本/one-click-optimization.sh`: Standard maintenance entrypoint.
 - `04-自动化脚本/quick-optimization.sh`: Faster routine maintenance.
 - `04-自动化脚本/rollback.sh`: Rollback for tool-managed preference changes.

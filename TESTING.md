@@ -16,6 +16,7 @@ The suite validates:
 - Optimization scripts refuse to run before a diagnostic report exists.
 - Dry-run mode leaves user files untouched.
 - Diagnostic reports include optional low, medium, and high risk recommendations.
+- Network probes are disabled by default, explicitly opt in with `--network`, and redact local and proxy addresses.
 - High-risk cleanup commands are not present in automatic quick or one-click flows.
 - Documentation references current script names.
 - Shell syntax is valid on system bash.
