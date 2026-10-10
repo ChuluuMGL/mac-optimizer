@@ -7,8 +7,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../lib/common.sh
 source "$SCRIPT_DIR/../lib/common.sh"
+# shellcheck source=../lib/agent_dirs.sh
+source "$SCRIPT_DIR/../lib/agent_dirs.sh"
 
-VERSION="1.4.2"
+VERSION="1.5.0"
 parse_common_args "$@"
 ensure_work_dirs
 
@@ -132,6 +134,13 @@ CPU_TOP_OUT="$(ps aux | sort -rk 3 | head -10 | awk '{printf "%-6s %6s %s\n", $3
 
 CACHE_OUT="$(scan du -sh "$MAC_OPT_USER_HOME/Library/Caches"/* 2>/dev/null | sort -hr | head -10 || true)"
 BIG_LOGS_OUT="$(scan find "$MAC_OPT_USER_HOME/Library/Logs" -name "*.log" -size +50M 2>/dev/null | head -10 || true)"
+
+# AI Agent / 开发者目录：只读统计 + 三档分级（安全可清 / 需确认 / 不要动）。
+AGENT_DIRS_ROWS="$(agent_dirs_scan 2>/dev/null || true)"
+AGENT_DIRS_OUT="$(format_agent_dirs "$AGENT_DIRS_ROWS" 2>/dev/null || true)"
+[[ -n "$AGENT_DIRS_OUT" ]] || AGENT_DIRS_OUT="未发现受支持的 Agent / 开发者目录。"
+AGENT_DIRS_JSON="$(agent_dirs_json_summary "$AGENT_DIRS_ROWS" 2>/dev/null || true)"
+[[ -n "$AGENT_DIRS_JSON" ]] || AGENT_DIRS_JSON='{"safe_to_clean":[],"needs_confirmation":[],"do_not_touch":[]}'
 
 if [[ "$NETWORK_DIAGNOSTICS" -eq 1 ]]; then
   NETWORK_OUT="$(scan bash "$MAC_OPT_ROOT/lib/network_diagnostics.sh" 2>/dev/null || true)"
@@ -309,6 +318,17 @@ ${BIG_LOGS_OUT}
 ${FENCE}
 SECTION4
 
+cat >> "$REPORT_FILE" << AGENT_SECTION
+
+### AI Agent 与开发者目录（只读分级）
+
+> 覆盖 \`~/.codex/{worktrees,sessions,artifacts}\`、\`~/.pm2/logs\`、\`~/.cache\`（uv/npm 等）、\`~/.gemini\`、\`~/.ollama\`、Xcode DeviceSupport/DerivedData、CoreSimulator、\`~/Library/Caches\` 前几名、\`/private/tmp\` 以及 worktree 内的 node_modules。
+> 本节只统计体积，不会删除任何内容；任何清理都必须由你逐项确认，并走显式参数。
+> **不要动**一栏（凭据、auth.json、memories、活动 sqlite、hermes/openclaw 配置）只列体积，永远不会被建议删除。
+
+${AGENT_DIRS_OUT}
+AGENT_SECTION
+
 cat >> "$REPORT_FILE" << SECTION5
 
 ## 5. 启动和服务
@@ -365,6 +385,9 @@ cat >> "$REPORT_FILE" << SECTION8
 | 中风险 | 调整 Dock、动画或刷新 DNS | 明确需要对应设置变化 | 分别显式传入 \`--tune-ui\` 或 \`--flush-dns\` | 需要确认 |
 | 高风险 | 删除 Time Machine 本地快照 | 磁盘极度紧张且已确认备份策略 | 只在深度清理脚本中逐项确认 | 不自动执行 |
 | 高风险 | 清理 Docker volumes、模拟器数据、开发环境大缓存 | 开发者存储占用很高 | 先备份或确认项目不依赖这些数据 | 不自动执行 |
+| 低风险 | 清理 Xcode DerivedData、pm2 日志、uv/npm 缓存、~/Library/Caches 单项、worktree 内 node_modules | “AI Agent 与开发者目录”中标为“安全可清”的项 | 用对应工具的官方命令（\`uv cache clean\`、\`pm2 flush\` 等）手动清理 | 不自动执行 |
+| 中风险 | 处理 ~/.codex/{worktrees,sessions,artifacts}、~/.gemini、~/.ollama、CoreSimulator、/private/tmp | 标为“需确认”的项，可能含未提交改动、会话历史或需重新下载的大文件 | 逐项确认后用官方命令处理 | 不自动执行 |
+| 禁区 | 凭据、auth.json、memories、活动 sqlite、hermes/openclaw 配置 | 标为“不要动”的项 | 不建议删除 | 永不执行 |
 | 高风险 | 禁用系统服务或修改电源休眠策略 | 明确知道影响范围 | 单独执行进阶脚本并保留回滚路径 | 不自动执行 |
 SECTION8
 
@@ -423,6 +446,7 @@ cat > "$RECOMMENDATIONS_FILE" << EOF
 {
   "date": "$DATE",
   "policy": "diagnose_first_optional_optimization",
+  "agent_dirs": $AGENT_DIRS_JSON,
   "low_risk": [
     "browser_cache",
     "old_crash_reports",

@@ -353,7 +353,7 @@ VMSTAT
 EOF
   chmod +x "$tmp/bin/sysctl" "$tmp/bin/vm_stat"
 
-  PATH="$tmp/bin:$PATH" HOME="$tmp/home" MAC_OPT_USER_HOME="$tmp/home" MAC_OPT_LOG_DIR="$tmp/logs" MAC_OPT_DATA_DIR="$tmp/data" bash ./01-检查脚本/full-check.sh --yes >/tmp/mac-opt-check.$$ 2>&1 || {
+  PATH="$tmp/bin:$PATH" HOME="$tmp/home" MAC_OPT_USER_HOME="$tmp/home" MAC_OPT_TMP_DIR="$tmp/home/tmp" MAC_OPT_SYSTEM_LIB="$tmp/home/syslib" MAC_OPT_LOG_DIR="$tmp/logs" MAC_OPT_DATA_DIR="$tmp/data" bash ./01-检查脚本/full-check.sh --yes >/tmp/mac-opt-check.$$ 2>&1 || {
     cat /tmp/mac-opt-check.$$
     rm -rf "$tmp" /tmp/mac-opt-check.$$
     fail "full-check must generate a diagnostic report"
@@ -442,6 +442,60 @@ EOF
   else
     printf '%s\n' "$output"
     fail "network report must classify results and redact local/proxy addresses"
+  fi
+
+  rm -rf "$tmp"
+}
+
+assert_agent_dirs_scan_is_read_only_and_classified() {
+  local tmp out report before after
+  tmp="$(mktemp -d)"
+  local h="$tmp/home"
+  mkdir -p "$h/.codex/worktrees/abc/proj/node_modules/pkg" "$h/.codex/sessions" "$h/.codex/artifacts" \
+    "$h/.codex/memories" "$h/.codex/secrets" "$h/.pm2/logs" "$h/.cache/uv" "$h/.cache/mystery" \
+    "$h/.npm/_cacache" "$h/.gemini" "$h/.ollama/models" "$h/.hermes" "$h/.openclaw" \
+    "$h/Library/Developer/Xcode/DerivedData" "$h/Library/Developer/Xcode/iOS DeviceSupport/17.0" \
+    "$h/Library/Developer/CoreSimulator/Devices" "$h/Library/Caches/SampleApp" "$tmp/tmp" "$tmp/syslib"
+  printf 'x\n' > "$h/.codex/auth.json"
+  printf 'x\n' > "$h/.codex/goals_1.sqlite"
+  printf 'x\n' > "$h/.gemini/oauth_creds.json"
+  printf 'x\n' > "$h/.pm2/logs/app.log"
+  printf 'x\n' > "$h/.codex/worktrees/abc/proj/node_modules/pkg/index.js"
+  before="$(find "$h" "$tmp/tmp" -type f | wc -l | tr -d ' ')"
+
+  out="$(HOME="$h" MAC_OPT_USER_HOME="$h" MAC_OPT_TMP_DIR="$tmp/tmp" MAC_OPT_SYSTEM_LIB="$tmp/syslib" bash -c 'source ./lib/common.sh; source ./lib/agent_dirs.sh; rows="$(agent_dirs_scan)"; format_agent_dirs "$rows"; agent_dirs_json_summary "$rows"' 2>&1)"
+  after="$(find "$h" "$tmp/tmp" -type f | wc -l | tr -d ' ')"
+
+  local safe_part="${out%%\*\*需确认\*\**}"
+  local keep_part="${out#*\*\*不要动\*\**}"
+  keep_part="${keep_part%%\{*}"
+  if [[ "$before" == "$after" ]] \
+    && [[ "$out" == *"**安全可清**"* && "$out" == *"**需确认**"* && "$out" == *"**不要动**"* ]] \
+    && [[ "$safe_part" == *".pm2/logs"* && "$safe_part" == *".cache/uv"* && "$safe_part" == *"DerivedData"* && "$safe_part" == *"node_modules"* ]] \
+    && [[ "$safe_part" != *".codex/sessions"* && "$safe_part" != *"auth.json"* ]] \
+    && [[ "$out" == *".codex/worktrees"* && "$out" == *".codex/sessions"* && "$out" == *".ollama"* && "$out" == *".gemini"* && "$out" == *"CoreSimulator"* ]] \
+    && [[ "$keep_part" == *"auth.json"* && "$keep_part" == *"memories"* && "$keep_part" == *"goals_1.sqlite"* && "$keep_part" == *".hermes"* && "$keep_part" == *".openclaw"* && "$keep_part" == *"oauth_creds.json"* ]] \
+    && [[ "$out" != *"$h"* ]] \
+    && [[ "$out" == *'"do_not_touch":['* && "$out" == *'"safe_to_clean":['* ]]; then
+    pass "agent dir scan is read-only, redacted, and classifies safe/confirm/keep"
+  else
+    printf '%s\n' "$out"
+    fail "agent dir scan must be read-only and classify 安全可清/需确认/不要动 without suggesting credentials for deletion"
+  fi
+
+  # 完整报告应包含该小节并写入 recommendations JSON
+  mkdir -p "$tmp/logs" "$tmp/data"
+  HOME="$h" MAC_OPT_USER_HOME="$h" MAC_OPT_TMP_DIR="$tmp/tmp" MAC_OPT_SYSTEM_LIB="$tmp/syslib" \
+    MAC_OPT_LOG_DIR="$tmp/logs" MAC_OPT_DATA_DIR="$tmp/data" bash ./01-检查脚本/full-check.sh --yes >/dev/null 2>&1 || true
+  report="$(find "$tmp/logs" -name 'check-report-*.md' -print | head -1)"
+  if [[ -n "$report" ]] \
+    && has_pattern 'AI Agent 与开发者目录' "$report" \
+    && has_pattern '安全可清' "$report" \
+    && has_pattern '不要动' "$report" \
+    && has_pattern '"agent_dirs"' "$tmp/data/recommendations-latest.json"; then
+    pass "full-check report and recommendations include agent dir classification"
+  else
+    fail "full-check must include the agent-dir section and recommendations JSON"
   fi
 
   rm -rf "$tmp"
@@ -575,7 +629,7 @@ assert_skill_package_metadata() {
   fi
 
   if has_pattern 'license-MIT' README.md README.zh-CN.md \
-    && has_pattern 'version-0\.1\.8' README.md README.zh-CN.md \
+    && has_pattern 'version-0\.2\.0' README.md README.zh-CN.md \
     && has_pattern 'by-Chuluu' README.md README.zh-CN.md \
     && has_pattern 'Copyright \(c\) 2026 Chuluu' NOTICE LICENSE \
     && has_pattern 'Published on GitHub by ChuluuMGL' NOTICE \
@@ -611,10 +665,10 @@ assert_skill_package_metadata() {
     && has_pattern 'sample-report.md' README.md README.zh-CN.md \
     && has_pattern 'report-review-checklist.md' README.md README.zh-CN.md \
     && has_pattern 'release-guide.md' README.md README.zh-CN.md \
-    && has_pattern '0\.1\.8' CHANGELOG.md \
+    && has_pattern '0\.2\.0' CHANGELOG.md \
     && has_pattern '脱敏示例' examples/basic-maintenance/sample-report.md \
     && has_pattern '高风险' references/report-review-checklist.md \
-    && has_pattern 'v0\.1\.8' references/release-guide.md; then
+    && has_pattern 'v0\.2\.0' references/release-guide.md; then
     pass "release notes, sample report, report review checklist, and release guide are linked"
   else
     fail "README, metadata, changelog, sample report, review checklist, and release guide must stay linked"
@@ -644,7 +698,7 @@ assert_runtime_package_outputs() {
   rm -rf dist
   if python3 scripts/package_runtime_skill.py >/tmp/mac-opt-package.$$ 2>&1 \
     && [[ -f "dist/mac-optimizer-skill.zip" ]] \
-    && [[ -f "dist/mac-optimizer-skill-0.1.8.zip" ]]; then
+    && [[ -f "dist/mac-optimizer-skill-0.2.0.zip" ]]; then
     pass "runtime package creates stable and versioned archives"
   else
     cat /tmp/mac-opt-package.$$
@@ -655,6 +709,7 @@ assert_runtime_package_outputs() {
 
 assert_file "lib/common.sh"
 assert_file "lib/network_diagnostics.sh"
+assert_file "lib/agent_dirs.sh"
 assert_file "README.md"
 assert_file "00-系统概览/README.md"
 assert_file "04-自动化脚本/verify.sh"
@@ -678,6 +733,7 @@ assert_named_log_is_opt_in
 assert_named_log_behavior "04-自动化脚本/one-click-optimization.sh"
 assert_diagnostic_report_has_risk_recommendations
 assert_network_diagnostics_are_opt_in_and_sanitized
+assert_agent_dirs_scan_is_read_only_and_classified
 assert_high_risk_not_auto_run
 assert_advanced_scripts_preserve_ambiguous_data
 assert_docs_are_current

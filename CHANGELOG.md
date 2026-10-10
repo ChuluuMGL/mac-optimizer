@@ -4,6 +4,14 @@ All notable changes to Mac Optimizer Skill are tracked here.
 
 ## Unreleased
 
+## 0.2.0 - 2026-10-10
+
+- Added a read-only "AI Agent 与开发者目录" section to `full-check.sh` (new `lib/agent_dirs.sh`) that sizes `~/.codex/{worktrees,sessions,artifacts}`, `node_modules` under `~/.codex/worktrees`, `~/.pm2/logs`, `~/.cache` (uv/npm/model caches), `~/.npm/_cacache`, `~/.gemini`, `~/.ollama`, Xcode DeviceSupport/DerivedData, CoreSimulator devices/caches/runtimes, the largest `~/Library/Caches` entries, and `/private/tmp`.
+- Classified every finding as 安全可清 (safe to clear), 需确认 (needs confirmation), or 不要动 (do not touch). Credentials, `auth.json`, memories, active sqlite/WAL files, and Hermes/OpenClaw configuration are listed by size only and are never suggested for deletion.
+- Added an `agent_dirs` block (`safe_to_clean`, `needs_confirmation`, `do_not_touch`) to `recommendations-latest.json` and three new rows to the risk-ranked recommendation table.
+- Scan only: no new cleanup actions were added. Existing destructive options remain behind their explicit flags and `--safe` stays cache-only.
+- Added `MAC_OPT_TMP_DIR` and `MAC_OPT_SYSTEM_LIB` overrides for tests, a fixture-based read-only/classification test, and bumped the runtime script suite to 1.5.0.
+
 ## 0.1.8 - 2026-10-01
 
 - Added opt-in `full-check.sh --network` diagnostics for the default route, gateway packet loss/latency, macOS DNS resolution, direct HTTPS, and configured proxy connectivity.
