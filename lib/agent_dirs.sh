@@ -25,21 +25,56 @@ _ad_display() {
   fi
 }
 
-# 输出一行：KB<TAB>class<TAB>展示路径<TAB>说明。路径不存在则跳过。
+# 成功且数值有效才返回 KB；失败、超时、无输出或无效输出都返回 ?。
+# 必须检查退出状态：du 权限错误也可能输出不完整的数值小计。
+_ad_size_kb() {
+  local output kb
+  if output="$(scan_checked du -sk "$1" 2>/dev/null)"; then
+    kb="${output%%[[:space:]]*}"
+    if [[ "$kb" =~ ^[0-9]+$ ]]; then
+      printf '%s' "$kb"
+      return 0
+    fi
+  fi
+  printf '?'
+}
+
+# 未知大小排在已知大小之前；已知大小降序。完整消费输入，避免 SIGPIPE。
+_ad_sort_sizes() {
+  awk -F'\t' '{print ($1 ~ /^[0-9]+$/ ? 1 : 0) "\t" $0}' |
+    sort -t$'\t' -k1,1n -k2,2nr | cut -f2-
+}
+
+# 输出一行：KB 或 ?<TAB>class<TAB>展示路径<TAB>说明。路径不存在则跳过。
 _ad_emit() {
   local class="$1" path="$2" note="$3" kb
   [[ -e "$path" ]] || return 0
-  kb="$(scan du -sk "$path" 2>/dev/null | awk 'NR==1 {print $1}')"
-  [[ "$kb" =~ ^[0-9]+$ ]] || kb=0
+  kb="$(_ad_size_kb "$path")"
+  [[ "$kb" != '?' ]] || note+="；体积未知（扫描失败、超时或结果无效）"
   printf '%s\t%s\t%s\t%s\n' "$kb" "$class" "$(_ad_display "$path")" "$note"
 }
 
 # 枚举目录下体积最大的前 N 个子项并按名称分级。
 _ad_emit_top_children() {
   local dir="$1" limit="$2" default_class="$3" default_note="$4"
-  local line kb path name class note
+  local line kb path name class note output
   [[ -d "$dir" ]] || return 0
-  scan du -sk "$dir"/* 2>/dev/null | sort -rn | head -"$limit" | while IFS= read -r line; do
+  if [[ ! -r "$dir" || ! -x "$dir" ]]; then
+    printf '?\tconfirm\t%s\t%s\n' "$(_ad_display "$dir")" "无法枚举子项（权限不足）；体积未知，列表不完整，需重新检查"
+    return 0
+  fi
+  # 空目录没有待测子项；避免把未展开的 * 传给 du。
+  local children=("$dir"/*)
+  [[ ${#children[@]} -gt 0 ]] || return 0
+  [[ -e "${children[0]}" || -L "${children[0]}" ]] || return 0
+  # 批量扫描仍共享一次超时预算。失败时任何小计都可能不完整，
+  # 只报告父目录未知且需确认，不把部分子项误列为可清理的完整 Top N。
+  if ! output="$(scan_checked du -sk "${children[@]}" 2>/dev/null)" \
+    || ! printf '%s\n' "$output" | awk '$1 !~ /^[0-9]+$/ || NF < 2 {invalid=1} END {exit invalid}'; then
+    printf '?\tconfirm\t%s\t%s\n' "$(_ad_display "$dir")" "子项扫描失败、超时或结果无效；体积未知，列表不完整，需重新检查"
+    return 0
+  fi
+  printf '%s\n' "$output" | sort -rn | awk -v n="$limit" 'NR <= n' | while IFS= read -r line; do
     kb="${line%%[[:space:]]*}"
     path="${line#*[[:space:]]}"
     path="${path#"${path%%[![:space:]]*}"}"
@@ -60,32 +95,58 @@ _ad_emit_top_children() {
   done
 }
 
-# ~/.codex/worktrees 内的 node_modules：逐个统计，输出前 5 项 + 合计。
+# ~/.codex/worktrees 内的 node_modules：输出前 5 项（未知优先）+ 合计。
 _ad_emit_worktree_node_modules() {
-  local root="$1/.codex/worktrees" total=0 kb path count=0 lines=""
+  local root="$1/.codex/worktrees" total=0 kb path count=0 lines="" paths incomplete=0
   [[ -d "$root" ]] || return 0
+  if ! paths="$(scan_checked find "$root" -maxdepth 6 -name node_modules -type d -prune -print 2>/dev/null)"; then
+    incomplete=1
+  fi
   while IFS= read -r path; do
     [[ -n "$path" ]] || continue
-    kb="$(scan du -sk "$path" 2>/dev/null | awk 'NR==1 {print $1}')"
-    [[ "$kb" =~ ^[0-9]+$ ]] || continue
-    total=$((total + kb))
+    kb="$(_ad_size_kb "$path")"
+    if [[ "$kb" == '?' ]]; then
+      incomplete=1
+    else
+      total=$((total + kb))
+    fi
     count=$((count + 1))
     lines+="$kb"$'\t'"$path"$'\n'
-  done < <(scan find "$root" -maxdepth 6 -name node_modules -type d -prune -print 2>/dev/null)
-  [[ "$count" -gt 0 ]] || return 0
-  printf '%s' "$lines" | sort -rn | head -5 | while IFS=$'\t' read -r kb path; do
+  done <<< "$paths"
+  [[ "$count" -gt 0 || "$incomplete" -eq 1 ]] || return 0
+  printf '%s' "$lines" | _ad_sort_sizes | awk 'NR <= 5' | while IFS=$'\t' read -r kb path; do
     [[ -n "$path" ]] || continue
     printf '%s\t%s\t%s\t%s\n' "$kb" "safe" "$(_ad_display "$path")" "worktree 依赖目录；可由 lockfile 重建，清理前确认该 worktree 没有正在运行的任务"
   done
-  printf '%s\t%s\t%s\t%s\n' "$total" "safe" "[合计] ~/.codex/worktrees 下 ${count} 个 node_modules" "仅为合计行，不重复计入上面的单项"
+  local note="仅为合计行，不重复计入上面的单项"
+  if [[ "$incomplete" -eq 1 ]]; then
+    total='?'
+    note+="；扫描失败、超时或大小未知，列表或合计不完整，需重新检查"
+  fi
+  printf '%s\t%s\t%s\t%s\n' "$total" "safe" "[合计] ~/.codex/worktrees 下已发现 ${count} 个 node_modules" "$note"
 }
 
-# agent_dirs_scan: 输出未排序的明细行 "KB<TAB>class<TAB>path<TAB>note"。
+# agent_dirs_scan: 输出未排序的明细行 "KB 或 ?<TAB>class<TAB>path<TAB>note"。
+# 先列保护项，再做可选的容量排名。
 agent_dirs_scan() {
   local home tmp_dir sys_lib f
   home="$(_ad_home)"
   tmp_dir="${MAC_OPT_TMP_DIR:-/private/tmp}"
   sys_lib="${MAC_OPT_SYSTEM_LIB:-/Library}"
+
+  # --- 不要动：凭据、记忆、活动数据库、Agent 配置（只统计体积，不读取内容） ---
+  _ad_emit keep "$home/.codex/auth.json"     "Codex 登录凭据；永不删除、不读取内容"
+  _ad_emit keep "$home/.codex/memories"      "Codex 记忆；永不删除"
+  _ad_emit keep "$home/.codex/secrets"       "密钥目录；永不删除"
+  _ad_emit keep "$home/.codex/config.toml"   "Codex 配置"
+  for f in "$home"/.codex/*.sqlite "$home"/.codex/*.sqlite-wal "$home"/.codex/*.sqlite-shm; do
+    _ad_emit keep "$f" "活动 sqlite（WAL 模式）；应用运行中不要动"
+  done
+  _ad_emit keep "$home/.gemini/oauth_creds.json"      "Gemini 登录凭据"
+  _ad_emit keep "$home/.gemini/google_accounts.json"  "Gemini 账号信息"
+  _ad_emit keep "$home/.ollama/id_ed25519"            "Ollama 私钥"
+  _ad_emit keep "$home/.hermes"              "Hermes 配置/技能；永不删除"
+  _ad_emit keep "$home/.openclaw"            "OpenClaw 配置；永不删除"
 
   # --- Codex ---
   _ad_emit confirm "$home/.codex/worktrees"  "Codex worktree 检出；可能含未提交/未推送的改动，逐个 git status 确认后再处理"
@@ -112,23 +173,10 @@ agent_dirs_scan() {
   # --- 系统缓存/临时 ---
   _ad_emit_top_children "$home/Library/Caches" 8 safe "应用缓存；关闭对应应用后可清，应用会自动重建"
   _ad_emit confirm "$tmp_dir"                "临时目录（默认 /private/tmp）；可能有正在使用的 socket/会话目录，仅处理重启后仍存在的旧文件"
-
-  # --- 不要动：凭据、记忆、活动数据库、Agent 配置（只统计体积，不读取内容） ---
-  _ad_emit keep "$home/.codex/auth.json"     "Codex 登录凭据；永不删除、不读取内容"
-  _ad_emit keep "$home/.codex/memories"      "Codex 记忆；永不删除"
-  _ad_emit keep "$home/.codex/secrets"       "密钥目录；永不删除"
-  _ad_emit keep "$home/.codex/config.toml"   "Codex 配置"
-  for f in "$home"/.codex/*.sqlite "$home"/.codex/*.sqlite-wal "$home"/.codex/*.sqlite-shm; do
-    _ad_emit keep "$f" "活动 sqlite（WAL 模式）；应用运行中不要动"
-  done
-  _ad_emit keep "$home/.gemini/oauth_creds.json"      "Gemini 登录凭据"
-  _ad_emit keep "$home/.gemini/google_accounts.json"  "Gemini 账号信息"
-  _ad_emit keep "$home/.ollama/id_ed25519"            "Ollama 私钥"
-  _ad_emit keep "$home/.hermes"              "Hermes 配置/技能；永不删除"
-  _ad_emit keep "$home/.openclaw"            "OpenClaw 配置；永不删除"
 }
 
 _ad_human_kb() {
+  [[ "$1" =~ ^[0-9]+$ ]] || { printf '未知'; return 0; }
   awk -v k="$1" 'BEGIN {
     if (k >= 1048576) printf "%.1fG", k/1048576;
     else if (k >= 1024) printf "%.0fM", k/1024;
@@ -145,6 +193,9 @@ format_agent_dirs() {
     printf '未发现受支持的 Agent / 开发者目录。\n'
     return 0
   fi
+  if printf '%s\n' "$rows" | awk -F'\t' '$1 !~ /^[0-9]+$/ {found=1} END {exit !found}'; then
+    printf '> 部分目录体积未知（扫描失败、超时或结果不完整），不代表 0K；未知项优先列出，请重新检查后再决定是否清理。\n\n'
+  fi
   for cls in safe confirm keep; do
     case "$cls" in
       safe)    label="安全可清" ;;
@@ -152,7 +203,7 @@ format_agent_dirs() {
       keep)    label="不要动" ;;
     esac
     local block
-    block="$(printf '%s\n' "$rows" | awk -F'\t' -v c="$cls" '$2 == c' | sort -t$'\t' -k1,1 -rn || true)"
+    block="$(printf '%s\n' "$rows" | awk -F'\t' -v c="$cls" '$2 == c' | _ad_sort_sizes || true)"
     [[ -n "$block" ]] || continue
     any=1
     printf '**%s**\n\n| 体积 | 路径 | 说明 |\n|------|------|------|\n' "$label"

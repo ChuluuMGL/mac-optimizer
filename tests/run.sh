@@ -351,7 +351,13 @@ Pages speculative:                       32768.
 Pages wired down:                        262144.
 VMSTAT
 EOF
-  chmod +x "$tmp/bin/sysctl" "$tmp/bin/vm_stat"
+  # Keep the report smoke test portable to Linux without treating the absent
+  # macOS command as an accidental execution of Markdown inline code.
+  cat > "$tmp/bin/launchctl" <<'EOF'
+#!/bin/sh
+exit 0
+EOF
+  chmod +x "$tmp/bin/sysctl" "$tmp/bin/vm_stat" "$tmp/bin/launchctl"
 
   PATH="$tmp/bin:$PATH" HOME="$tmp/home" MAC_OPT_USER_HOME="$tmp/home" MAC_OPT_TMP_DIR="$tmp/home/tmp" MAC_OPT_SYSTEM_LIB="$tmp/home/syslib" MAC_OPT_LOG_DIR="$tmp/logs" MAC_OPT_DATA_DIR="$tmp/data" bash ./01-检查脚本/full-check.sh --yes >/tmp/mac-opt-check.$$ 2>&1 || {
     cat /tmp/mac-opt-check.$$
@@ -734,6 +740,13 @@ assert_named_log_behavior "04-自动化脚本/one-click-optimization.sh"
 assert_diagnostic_report_has_risk_recommendations
 assert_network_diagnostics_are_opt_in_and_sanitized
 assert_agent_dirs_scan_is_read_only_and_classified
+for agent_test in tests/agent_dirs_failures.sh tests/agent_dirs_report.sh; do
+  if bash "$agent_test"; then
+    pass "$agent_test"
+  else
+    fail "$agent_test"
+  fi
+done
 assert_high_risk_not_auto_run
 assert_advanced_scripts_preserve_ambiguous_data
 assert_docs_are_current

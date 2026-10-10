@@ -389,10 +389,10 @@ cpu_summary() {
 # === 扫描工具（超时 / 大文件搜索 / APFS 物理大小） ===
 # 这些函数让重型扫描可中断、可降级，避免单个慢命令拖垮整份报告。
 
-# scan: 给单条命令套超时；超时或失败一律返回 0，绝不中断脚本。
+# scan_checked: 给单条命令套超时并保留失败状态；调用方必须显式处理失败。
 # 用 MAC_OPT_SCAN_TIMEOUT 覆盖默认 60s。优先 GNU coreutils 的 timeout，
 # macOS 原生没有，故用 perl alarm 兜底（系统自带 perl）。
-scan() {
+scan_checked() {
   [[ $# -eq 0 ]] && return 0
   local timeout_secs="${MAC_OPT_SCAN_TIMEOUT:-60}"
   if command -v gtimeout >/dev/null 2>&1; then
@@ -408,10 +408,14 @@ scan() {
       local $SIG{ALRM} = sub { kill "TERM", $pid; sleep 1; kill "KILL", $pid; exit 124 };
       alarm $t;
       waitpid($pid, 0);
-      exit($? >> 8);
+      exit(($? & 127) ? 128 + ($? & 127) : $? >> 8);
     ' "$timeout_secs" "$@" 2>/dev/null
   fi
-  return 0
+}
+
+# scan: 保持既有的尽力扫描语义，失败不影响其他报告小节。
+scan() {
+  scan_checked "$@" || true
 }
 
 # list_large_files: 列出大于 min_bytes（默认 1GiB）的大文件，输出 "KB<TAB>路径"。

@@ -19,6 +19,8 @@ The suite validates:
 - Network probes are disabled by default, explicitly opt in with `--network`, and redact local and proxy addresses.
 - High-risk cleanup commands are not present in automatic quick or one-click flows.
 - Documentation references current script names.
+- Agent directory failures/timeouts render as unknown, retain protected paths, and mark partial totals as incomplete.
+- Large child listings finish under strict Bash without truncation-related SIGPIPE.
 - Shell syntax is valid on system bash.
 - The verification script runs without making cleanup changes.
 
@@ -40,4 +42,11 @@ The package should be created at:
 
 ```text
 dist/mac-optimizer-skill.zip
+```
+
+Focused agent-directory regressions (isolated fixtures and mock commands):
+
+```bash
+bash tests/agent_dirs_failures.sh
+bash tests/agent_dirs_report.sh
 ```
