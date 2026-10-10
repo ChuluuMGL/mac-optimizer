@@ -7,6 +7,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LIB_DIR="${MAC_OPT_TEST_LIB_DIR:-$ROOT_DIR/lib}"
 TEST_TMP="$(mktemp -d "${TMPDIR:-/tmp}/mac-opt-agent-failures.XXXXXX")"
 trap 'rm -rf "$TEST_TMP"' EXIT
+# macOS TMPDIR ends in /; keep shell and pathlib fixture prefixes identical.
+TEST_TMP="$(cd "$TEST_TMP" && pwd -P)"
 export MAC_OPT_TEST_LIB_DIR="$LIB_DIR" MAC_OPT_TEST_FIXTURE="$TEST_TMP"
 export MAC_OPT_TEST_BASH="$BASH"
 printf 'Agent scan regression shell: %s\n' "$BASH_VERSION"
