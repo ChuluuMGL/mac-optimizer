@@ -4,6 +4,10 @@ All notable changes to Mac Optimizer Skill are tracked here.
 
 ## Unreleased
 
+- Preserve protected Agent-directory rows when size scans fail and avoid Top-N broken pipes.
+- Display failed, timed-out, or incomplete Agent-directory sizes and worktree totals as unknown instead of 0K.
+- Add strict-mode and complete-report regressions with isolated fixtures and mocked scan failures.
+
 ## 0.2.0 - 2026-10-10
 
 - Added a read-only "AI Agent 与开发者目录" section to `full-check.sh` (new `lib/agent_dirs.sh`) that sizes `~/.codex/{worktrees,sessions,artifacts}`, `node_modules` under `~/.codex/worktrees`, `~/.pm2/logs`, `~/.cache` (uv/npm/model caches), `~/.npm/_cacache`, `~/.gemini`, `~/.ollama`, Xcode DeviceSupport/DerivedData, CoreSimulator devices/caches/runtimes, the largest `~/Library/Caches` entries, and `/private/tmp`.
