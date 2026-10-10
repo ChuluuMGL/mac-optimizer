@@ -35,6 +35,7 @@ Use this skill when the user asks to:
 | 保守默认 | Prefer `--safe` when the user wants minimal risk. |
 | 自动边界 | Automatic flows may clean regenerable caches and old Crashpad reports, but must only report Trash, Downloads, broad logs, app containers, and developer data. |
 | 隐私保护 | Do not expose private file contents, secrets, or personal paths beyond what is needed for the report summary. |
+| Agent 目录分级 | `full-check.sh` 只读统计 `~/.codex`、`~/.pm2/logs`、`~/.cache`、`~/.gemini`、`~/.ollama`、Xcode/CoreSimulator、`/private/tmp` 等并分为 安全可清 / 需确认 / 不要动；绝不建议删除凭据、auth.json、memories、活动 sqlite、hermes/openclaw 配置，清理需用户逐项确认。 |
 | 网络探测 | 外部 DNS/HTTPS 探测必须显式使用 `--network`；只报告结果，不修改网络设置，也不并入磁盘健康分。 |
 
 ## Workflow

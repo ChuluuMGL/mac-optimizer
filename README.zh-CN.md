@@ -8,7 +8,7 @@
 中文 | [English](README.md)
 
 [![AI Skill](https://img.shields.io/badge/AI%20Skill-mac--optimizer-0E5E43)](./SKILL.md)
-[![Version](https://img.shields.io/badge/version-0.1.8-green)](./skill.json)
+[![Version](https://img.shields.io/badge/version-0.2.0-green)](./skill.json)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](./LICENSE)
 [![by Chuluu](https://img.shields.io/badge/by-Chuluu-0E5E43)](https://github.com/ChuluuMGL)
 [![Workflow](https://img.shields.io/badge/workflow-diagnosis--first-purple)](./SKILL.md)
@@ -53,6 +53,16 @@ bash ./01-检查脚本/full-check.sh --network
 ```
 
 报告只显示连通结果和耗时，不显示本地 IP、Wi-Fi 名称或代理地址；网络结果不计入磁盘健康分，也不会更改 DNS、代理或网络设置。
+
+0.2.0 起，全面检查还会只读统计 AI Agent 与开发者工具目录（`~/.codex/{worktrees,sessions,artifacts}`、worktree 内的 `node_modules`、`~/.pm2/logs`、`~/.cache`、`~/.npm`、`~/.gemini`、`~/.ollama`、Xcode DeviceSupport/DerivedData、CoreSimulator、`~/Library/Caches` 前几名、`/private/tmp`），并分成三档：
+
+| 分级 | 含义 |
+|---|---|
+| 安全可清 | 可由工具或包管理器重建的缓存、日志（例如 DerivedData、pm2 日志、worktree 内的 node_modules） |
+| 需确认 | 可能含未提交改动、会话历史，或需要重新下载的大文件（例如 worktrees、sessions、`~/.gemini`、`~/.ollama`、模拟器运行时、`/private/tmp`） |
+| 不要动 | 凭据、`auth.json`、memories、活动 sqlite、Hermes/OpenClaw 配置；只列体积，永远不建议删除 |
+
+这一部分只做统计，不删除任何内容；结果同时写入 `recommendations-latest.json` 的 `agent_dirs` 字段。
 
 诊断报告会生成风险分级建议。看完报告后，预览一键优化会做什么：
 
@@ -106,7 +116,7 @@ python3 ./scripts/package_runtime_skill.py
 ```
 
 输出文件会生成在 `dist/mac-optimizer-skill.zip`。
-同时也会生成版本化文件，例如 `dist/mac-optimizer-skill-0.1.8.zip`。
+同时也会生成版本化文件，例如 `dist/mac-optimizer-skill-0.2.0.zip`。
 
 ### 安装与兼容性
 
@@ -133,6 +143,7 @@ python3 ./scripts/package_runtime_skill.py
 ## 入口脚本
 
 - `01-检查脚本/full-check.sh`: 只读系统检查和报告。
+- `lib/agent_dirs.sh`: 由 `full-check.sh` 调用的只读 Agent/开发者目录体积统计与三档分级。
 - `lib/network_diagnostics.sh`: 由 `full-check.sh --network` 显式调用的只读网络探测。
 - `04-自动化脚本/quick-optimization.sh`: 日常快速维护。
 - `04-自动化脚本/one-click-optimization.sh`: 常规维护入口。
@@ -146,6 +157,7 @@ python3 ./scripts/package_runtime_skill.py
 ## 安全边界
 
 - 默认会在执行前询问。
+- 全面检查默认只扫描、只报告；Agent 目录分级（安全可清 / 需确认 / 不要动）不会触发任何删除，清理动作必须显式确认并使用对应参数。
 - `--dry-run` 只预览，不删除文件、不修改设置。
 - 日志和数据保存在当前项目的 `logs/` 和 `data/`。
 - 自动流程只清理可再生缓存和 7 天前的 Crashpad；下载目录、废纸篓、广泛日志、应用容器和开发数据只报告、逐项确认。

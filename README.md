@@ -8,7 +8,7 @@
 [中文说明](README.zh-CN.md) | English
 
 [![AI Skill](https://img.shields.io/badge/AI%20Skill-mac--optimizer-0E5E43)](./SKILL.md)
-[![Version](https://img.shields.io/badge/version-0.1.8-green)](./skill.json)
+[![Version](https://img.shields.io/badge/version-0.2.0-green)](./skill.json)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](./LICENSE)
 [![by Chuluu](https://img.shields.io/badge/by-Chuluu-0E5E43)](https://github.com/ChuluuMGL)
 [![Workflow](https://img.shields.io/badge/workflow-diagnosis--first-purple)](./SKILL.md)
@@ -53,6 +53,8 @@ bash ./01-检查脚本/full-check.sh --network
 ```
 
 The network section hides local IPs, Wi-Fi names, and proxy addresses; it does not change settings or affect the disk health score.
+
+Since 0.2.0 the report also sizes AI-agent and developer directories read-only (`~/.codex/{worktrees,sessions,artifacts}`, `node_modules` inside worktrees, `~/.pm2/logs`, `~/.cache`, `~/.npm`, `~/.gemini`, `~/.ollama`, Xcode DeviceSupport/DerivedData, CoreSimulator, top `~/Library/Caches`, `/private/tmp`) and classifies each as 安全可清 (safe to clear), 需确认 (needs confirmation), or 不要动 (do not touch: credentials, `auth.json`, memories, active sqlite, Hermes/OpenClaw configs). This is scan-only; nothing is deleted, and the results are also written to the `agent_dirs` field of `recommendations-latest.json`.
 
 Preview the standard maintenance flow:
 
@@ -100,7 +102,7 @@ python3 ./scripts/package_runtime_skill.py
 ```
 
 The generated package is written to `dist/mac-optimizer-skill.zip`.
-A versioned archive is also generated, for example `dist/mac-optimizer-skill-0.1.8.zip`.
+A versioned archive is also generated, for example `dist/mac-optimizer-skill-0.2.0.zip`.
 
 ### Install And Compatibility
 
@@ -130,6 +132,7 @@ You can ask a coding agent:
 - `skill.json`: Machine-readable metadata for GitHub and skill registries.
 - `CHANGELOG.md`: Version history and release notes.
 - `01-检查脚本/full-check.sh`: Read-only macOS diagnostic report.
+- `lib/agent_dirs.sh`: Read-only sizing and three-tier classification of AI-agent and developer directories used by `full-check.sh`.
 - `lib/network_diagnostics.sh`: Opt-in read-only network probe used by `full-check.sh --network`.
 - `04-自动化脚本/one-click-optimization.sh`: Standard maintenance entrypoint.
 - `04-自动化脚本/quick-optimization.sh`: Faster routine maintenance.
