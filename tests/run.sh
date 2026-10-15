@@ -740,7 +740,7 @@ assert_named_log_behavior "04-自动化脚本/one-click-optimization.sh"
 assert_diagnostic_report_has_risk_recommendations
 assert_network_diagnostics_are_opt_in_and_sanitized
 assert_agent_dirs_scan_is_read_only_and_classified
-for agent_test in tests/agent_dirs_failures.sh tests/agent_dirs_report.sh; do
+for agent_test in tests/agent_dirs_failures.sh tests/agent_dirs_report.sh tests/advanced_scripts.sh; do
   if bash "$agent_test"; then
     pass "$agent_test"
   else

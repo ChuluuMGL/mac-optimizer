@@ -1,7 +1,8 @@
 #!/bin/bash
 # AI工具缓存清理脚本
 # 用途: 清理各种AI开发工具的缓存和临时文件
-# 用法: ./ai-tools-cleanup.sh
+# 用法: ./ai-tools-cleanup.sh [--dry-run]
+#       可选: MAC_OPT_PYCACHE_DIRS="/path/a:/path/b" 指定要清理 __pycache__ 的项目目录（默认不清理任何项目目录）
 # 风险: 🟡 中风险（缓存可清理；执行历史和模型需额外确认）
 
 set -e
@@ -12,7 +13,11 @@ source "$SCRIPT_DIR/../lib/common.sh"
 parse_common_args "$@"
 ensure_work_dirs
 
-VERSION="1.0.0"
+VERSION="1.1.0"
+# 所有删除都基于 MAC_OPT_USER_HOME，避免在 sudo 下误清理 /var/root。
+H="$MAC_OPT_USER_HOME"
+# 可选：冒号分隔的项目目录列表，仅在显式设置时清理其中的 __pycache__。
+PYCACHE_DIRS="${MAC_OPT_PYCACHE_DIRS:-}"
 LOG_FILE="$MAC_OPT_LOG_DIR/ai-cleanup-$(date +%Y%m%d-%H%M%S).log"
 
 # 颜色定义
@@ -72,6 +77,13 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
             log "  [预览] $(basename "$dir"): $(du -sh "$dir" 2>/dev/null | cut -f1)"
         fi
     done
+    if [ -n "$PYCACHE_DIRS" ]; then
+        IFS=':' read -r -a _pyc_dirs <<< "$PYCACHE_DIRS"
+        for dir in "${_pyc_dirs[@]}"; do
+            [ -d "$dir" ] || continue
+            log "  [预览] ${dir} 下 __pycache__ 目录: $(find "$dir" -type d -name "__pycache__" 2>/dev/null | wc -l | tr -d ' ') 个"
+        done
+    fi
     echo ""
     log "预览结束。确认后可不带 --dry-run 再执行。"
     exit 0
@@ -88,8 +100,8 @@ TOTAL_FREED=0
 # ============================================
 log "[1/10] 检查 Ollama 模型..."
 
-if [ -d ~/.ollama ]; then
-    OLLAMA_SIZE=$(du -sh ~/.ollama 2>/dev/null | cut -f1)
+if [ -d "$H/.ollama" ]; then
+    OLLAMA_SIZE=$(du -sh "$H/.ollama" 2>/dev/null | cut -f1)
     log "  Ollama 目录大小: ${OLLAMA_SIZE}"
 
     echo ""
@@ -102,10 +114,10 @@ if [ -d ~/.ollama ]; then
     echo "    ollama rm <模型名称>"
     echo "  示例: ollama rm llama2"
 
-    read -p "  是否删除 Ollama 缓存? (n/N: 跳过) " -n 1 -r
+    read -p "  是否删除 Ollama 顶层 *.cache 文件（不删除模型）? (y/N) " -n 1 -r
     echo
-    if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-        rm -rf ~/.ollama/*.cache 2>/dev/null
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        find "$H/.ollama" -maxdepth 1 -name "*.cache" -exec rm -rf {} + 2>/dev/null || true
         log "  ✓ Ollama 缓存已清理"
     fi
 else
@@ -118,14 +130,14 @@ fi
 log "[2/10] 检查 n8n 数据..."
 
 # 检查多个可能的 n8n 数据目录
-N8N_DIRS=$(find ~/Documents -type d -name "n8n" -o -name ".n8n" -o -name "n8n-data" 2>/dev/null | head -5)
+ALL_N8N_DIRS=()
+while IFS= read -r _n8n_dir; do
+    [ -n "$_n8n_dir" ] && ALL_N8N_DIRS+=("$_n8n_dir")
+done < <(find "$H/Documents" -type d \( -name "n8n" -o -name ".n8n" -o -name "n8n-data" \) 2>/dev/null | head -5)
+[ -d "$H/.n8n" ] && ALL_N8N_DIRS+=("$H/.n8n")
 
-if [ -n "$N8N_DIRS" ] || [ -d ~/.n8n ]; then
-    # 合并所有 n8n 目录
-    ALL_N8N_DIRS="$N8N_DIRS"
-    [ -d ~/.n8n ] && ALL_N8N_DIRS="$ALL_N8N_DIRS ~/.n8n"
-
-    for N8N_DIR in $ALL_N8N_DIRS; do
+if [ ${#ALL_N8N_DIRS[@]} -gt 0 ]; then
+    for N8N_DIR in "${ALL_N8N_DIRS[@]}"; do
         if [ -d "$N8N_DIR" ]; then
             N8N_SIZE=$(du -sh "$N8N_DIR" 2>/dev/null | cut -f1)
             log "  n8n 目录: ${N8N_DIR}"
@@ -185,14 +197,14 @@ fi
 # ============================================
 log "[3/10] 检查 Cursor AI..."
 
-if [ -d ~/.cursor ]; then
-    CURSOR_SIZE=$(du -sh ~/.cursor 2>/dev/null | cut -f1)
+if [ -d "$H/.cursor" ]; then
+    CURSOR_SIZE=$(du -sh "$H/.cursor" 2>/dev/null | cut -f1)
     log "  Cursor 目录大小: ${CURSOR_SIZE}"
 
     # 清理缓存
-    rm -rf ~/.cursor/Cache 2>/dev/null
-    rm -rf ~/.cursor/Code\ Cache 2>/dev/null
-    rm -rf ~/.cursor/GPUCache 2>/dev/null
+    rm -rf "$H/.cursor/Cache" 2>/dev/null
+    rm -rf "$H/.cursor/Code Cache" 2>/dev/null
+    rm -rf "$H/.cursor/GPUCache" 2>/dev/null
 
     log "  ✓ Cursor 缓存已清理"
 else
@@ -204,12 +216,12 @@ fi
 # ============================================
 log "[4/10] 检查 Cherry Studio..."
 
-if [ -d ~/.cherrystudio ]; then
-    CHERRY_SIZE=$(du -sh ~/.cherrystudio 2>/dev/null | cut -f1)
+if [ -d "$H/.cherrystudio" ]; then
+    CHERRY_SIZE=$(du -sh "$H/.cherrystudio" 2>/dev/null | cut -f1)
     log "  Cherry Studio 目录大小: ${CHERRY_SIZE}"
 
-    rm -rf ~/.cherrystudio/Cache 2>/dev/null
-    rm -rf ~/.cherrystudio/Code\ Cache 2>/dev/null
+    rm -rf "$H/.cherrystudio/Cache" 2>/dev/null
+    rm -rf "$H/.cherrystudio/Code Cache" 2>/dev/null
 
     log "  ✓ Cherry Studio 缓存已清理"
 else
@@ -221,11 +233,11 @@ fi
 # ============================================
 log "[5/10] 检查 Google Gemini..."
 
-if [ -d ~/.gemini ]; then
-    GEMINI_SIZE=$(du -sh ~/.gemini 2>/dev/null | cut -f1)
+if [ -d "$H/.gemini" ]; then
+    GEMINI_SIZE=$(du -sh "$H/.gemini" 2>/dev/null | cut -f1)
     log "  Gemini 目录大小: ${GEMINI_SIZE}"
 
-    rm -rf ~/.gemini/Cache 2>/dev/null
+    rm -rf "$H/.gemini/Cache" 2>/dev/null
 
     log "  ✓ Gemini 缓存已清理"
 else
@@ -237,18 +249,18 @@ fi
 # ============================================
 log "[6/10] 检查 EasyOCR 模型..."
 
-if [ -d ~/.EasyOCR ]; then
-    EASYOCR_SIZE=$(du -sh ~/.EasyOCR 2>/dev/null | cut -f1)
+if [ -d "$H/.EasyOCR" ]; then
+    EASYOCR_SIZE=$(du -sh "$H/.EasyOCR" 2>/dev/null | cut -f1)
     log "  EasyOCR 目录大小: ${EASYOCR_SIZE}"
 
     info "  EasyOCR 模型缓存，建议保留"
-    read -p "  是否删除 EasyOCR 缓存? (y/N: 仅清理临时文件) " -n 1 -r
+    read -p "  是否删除全部 EasyOCR 模型（之后需重新下载）? (y/N: 仅清理临时文件) " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        rm -rf ~/.EasyOCR/* 2>/dev/null
-        log "  ✓ EasyOCR 缓存已删除"
+        find "$H/.EasyOCR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
+        log "  ✓ EasyOCR 模型已删除"
     else
-        find ~/.EasyOCR -name "*.tmp" -delete 2>/dev/null
+        find "$H/.EasyOCR" -name "*.tmp" -delete 2>/dev/null || true
         log "  ✓ EasyOCR 临时文件已清理"
     fi
 else
@@ -260,12 +272,12 @@ fi
 # ============================================
 log "[7/10] 检查 ZAI 工具..."
 
-if [ -d ~/.zai ]; then
-    ZAI_SIZE=$(du -sh ~/.zai 2>/dev/null | cut -f1)
+if [ -d "$H/.zai" ]; then
+    ZAI_SIZE=$(du -sh "$H/.zai" 2>/dev/null | cut -f1)
     log "  ZAI 目录大小: ${ZAI_SIZE}"
 
-    rm -rf ~/.zai/cache 2>/dev/null
-    ZAI_LOGS=$(find ~/.zai/logs -maxdepth 1 -name "*.log" -type f 2>/dev/null | wc -l | tr -d ' ')
+    rm -rf "$H/.zai/cache" 2>/dev/null
+    ZAI_LOGS=$(find "$H/.zai/logs" -maxdepth 1 -name "*.log" -type f 2>/dev/null | wc -l | tr -d ' ')
 
     log "  ✓ ZAI 缓存已清理"
     info "  [仅报告] ZAI 日志: ${ZAI_LOGS} 个"
@@ -278,12 +290,12 @@ fi
 # ============================================
 log "[8/10] 检查 Trae IDE..."
 
-if [ -d ~/.trae ] || [ -d ~/.trae-aicc ]; then
-    TRAE_SIZE=$(du -sh ~/.trae ~/.trae-aicc 2>/dev/null | awk '{sum+=$1} END {print sum}')
-    log "  Trae IDE 目录大小: ${TRAE_SIZE}"
+if [ -d "$H/.trae" ] || [ -d "$H/.trae-aicc" ]; then
+    TRAE_SIZE=$(du -sm "$H/.trae" "$H/.trae-aicc" 2>/dev/null | awk '{sum+=$1} END {print sum+0}')
+    log "  Trae IDE 目录大小: ${TRAE_SIZE}MB"
 
-    rm -rf ~/.trae/cache 2>/dev/null
-    rm -rf ~/.trae-aicc/cache 2>/dev/null
+    rm -rf "$H/.trae/cache" 2>/dev/null
+    rm -rf "$H/.trae-aicc/cache" 2>/dev/null
 
     log "  ✓ Trae IDE 缓存已清理"
     info "  [仅报告] Trae IDE 日志已保留"
@@ -313,11 +325,20 @@ fi
 # ============================================
 log "[10/10] 清理 AI 相关临时文件..."
 
-# 清理 Python __pycache__
-find ~/Documents/AI_Collection_Tool -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null
-find ~/Documents/Batch -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null
-
-log "  ✓ Python 缓存已清理"
+# 清理 Python __pycache__：仅针对通过 MAC_OPT_PYCACHE_DIRS 显式指定的项目目录。
+if [ -n "$PYCACHE_DIRS" ]; then
+    IFS=':' read -r -a _pyc_dirs <<< "$PYCACHE_DIRS"
+    for dir in "${_pyc_dirs[@]}"; do
+        if [ -d "$dir" ]; then
+            find "$dir" -type d -name "__pycache__" -prune -exec rm -rf {} + 2>/dev/null || true
+            log "  ✓ ${dir} 下的 Python 缓存已清理"
+        else
+            info "  - ${dir} 不存在，跳过"
+        fi
+    done
+else
+    info "  - 未设置 MAC_OPT_PYCACHE_DIRS，跳过项目 __pycache__ 清理"
+fi
 
 # 计算耗时
 END_TIME=$(date +%s)

@@ -138,6 +138,7 @@ You can ask a coding agent:
 - `04-自动化脚本/quick-optimization.sh`: Faster routine maintenance.
 - `04-自动化脚本/rollback.sh`: Rollback for tool-managed preference changes.
 - `05-维护计划/monthly.sh`: Monthly diagnosis plus maintenance orchestration.
+- `03-优化方案/`: Advanced, interactive item-by-item scripts. `deep-storage-cleanup.sh`, `power-optimization.sh`, and `ai-tools-cleanup.sh` support `--dry-run`, which lists the paths, sizes, and `pmset` settings they would change without changing anything. Without it, each destructive step asks for its own confirmation. For example, the Android step permanently deletes all AVD emulator images. Project `__pycache__` cleanup runs only for directories listed in `MAC_OPT_PYCACHE_DIRS`.
 - `examples/basic-maintenance/sample-report.md`: Sanitized sample diagnostic report.
 - `references/`: Safety policy, risk model, report contract, report-review-checklist.md, release-guide.md, and distribution notes.
 

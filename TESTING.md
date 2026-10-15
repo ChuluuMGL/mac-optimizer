@@ -21,6 +21,7 @@ The suite validates:
 - Documentation references current script names.
 - Agent directory failures/timeouts render as unknown, retain protected paths, and mark partial totals as incomplete.
 - Large child listings finish under strict Bash without truncation-related SIGPIPE.
+- Advanced scripts (`deep-storage-cleanup.sh`, `power-optimization.sh`, `ai-tools-cleanup.sh`) make zero changes with `--dry-run`. This is checked against a synthetic `MAC_OPT_USER_HOME` with `sudo`/`pmset`/`xcrun`/`defaults` shims. The confirmed runs delete only under `MAC_OPT_USER_HOME`, and no personal project paths are hard-coded.
 - Shell syntax is valid on system bash.
 - The verification script runs without making cleanup changes.
 
@@ -49,4 +50,5 @@ Focused agent-directory regressions (isolated fixtures and mock commands):
 ```bash
 bash tests/agent_dirs_failures.sh
 bash tests/agent_dirs_report.sh
+bash tests/advanced_scripts.sh
 ```

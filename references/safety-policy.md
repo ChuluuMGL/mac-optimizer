@@ -37,6 +37,13 @@ The following actions must not be added to automatic quick or one-click flows:
 
 High-risk items may appear in reports as manual review recommendations only.
 
+## Advanced Scripts (`03-优化方案/`)
+
+- `deep-storage-cleanup.sh`, `power-optimization.sh`, and `ai-tools-cleanup.sh` accept `--dry-run`. In that mode they report the paths, sizes, and `pmset`/`defaults` changes they would make, and they make zero changes: no `rm`, no `sudo`, no `xcrun simctl`, and no setting writes.
+- Without `--dry-run`, each destructive step asks for its own confirmation. Prompts must name what is permanently lost. For example, Android AVD removal deletes whole emulator images, not cache.
+- All paths derive from `MAC_OPT_USER_HOME`, never a bare `~`, so running under `sudo` cannot target `/var/root`.
+- Scripts must not hard-code personal project folders. Project-level cleanup, such as `__pycache__`, runs only on directories the user lists in `MAC_OPT_PYCACHE_DIRS`.
+
 ## Privacy Boundary
 
 Reports may summarize sizes, paths, and categories needed for maintenance. Do not expose secrets, file contents, private messages, credentials, or unrelated personal data.

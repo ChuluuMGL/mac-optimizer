@@ -1,11 +1,18 @@
 #!/bin/bash
 # 深度存储清理脚本
 # 用途: 检查开发工具和大文件，对可再生开发缓存提供逐项清理
-# 用法: ./deep-storage-cleanup.sh
+# 用法: ./deep-storage-cleanup.sh [--dry-run]
+#       --dry-run 只报告将删除的路径和大小，不删除任何文件、不调用 simctl。
 # 风险: 🟠 高风险（开发环境操作需逐项确认；用户文件只报告）
 
-VERSION="1.1.0"
-FREED_SPACE=0
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../lib/common.sh
+source "$SCRIPT_DIR/../lib/common.sh"
+parse_common_args "$@"
+
+VERSION="1.2.0"
+CLEANED_ITEMS=0
+USER_HOME="$MAC_OPT_USER_HOME"
 
 # 颜色定义
 RED='\033[0;31m'
@@ -37,8 +44,22 @@ get_size() {
     du -sh "$1" 2>/dev/null | cut -f1
 }
 
+# 逐项确认。预览模式下只打印将执行的动作并返回 1（不执行）。
+# 用法: ask_item "<提示>" "<预览说明>"
+ask_item() {
+    local prompt="$1"
+    local preview="$2"
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+        log "  [预览] ${preview}"
+        return 1
+    fi
+    read -p "${prompt} (y/N) " -n 1 -r
+    echo
+    [[ $REPLY =~ ^[Yy]$ ]]
+}
+
 # 欢迎信息
-clear
+clear_screen
 cat << "EOF"
 ╔════════════════════════════════════════╗
 ║   深度存储清理工具 v1.0                ║
@@ -49,6 +70,9 @@ EOF
 echo ""
 warn "⚠️  此工具仅对可再生开发缓存提供逐项确认"
 warn "   下载、项目日志、Docker volumes 和 Time Machine 快照只报告，不自动删除"
+if [[ "$DRY_RUN" -eq 1 ]]; then
+    warn "   当前为预览模式（--dry-run）：只报告将删除的路径和大小，不做任何修改。"
+fi
 echo ""
 
 # ============================================
@@ -59,20 +83,18 @@ echo -e "${CYAN}1. Xcode 派生数据${NC}"
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-XCODE_DERIVED_DIR=~/Library/Developer/Xcode/DerivedData
+XCODE_DERIVED_DIR="$USER_HOME/Library/Developer/Xcode/DerivedData"
 if [ -d "$XCODE_DERIVED_DIR" ]; then
     XCODE_SIZE=$(get_size "$XCODE_DERIVED_DIR")
     warn "  大小: ${XCODE_SIZE}"
     info "  路径: ${XCODE_DERIVED_DIR}"
     echo ""
 
-    read -p "是否删除 Xcode 派生数据? (y/N) " -n 1 -r
-    echo
-
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        rm -rf "$XCODE_DERIVED_DIR"/*
+    if ask_item "是否删除 Xcode 派生数据（可由 Xcode 重新生成）?" \
+        "将删除 ${XCODE_DERIVED_DIR} 下全部内容（${XCODE_SIZE}）"; then
+        find "$XCODE_DERIVED_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null
         log "  ✓ Xcode 派生数据已删除"
-        FREED_SPACE=$((FREED_SPACE + 1))
+        CLEANED_ITEMS=$((CLEANED_ITEMS + 1))
     else
         info "  - 跳过"
     fi
@@ -89,20 +111,19 @@ echo -e "${CYAN}2. Xcode Simulator 数据${NC}"
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-XCODE_SIMULATOR_DIR=~/Library/Developer/CoreSimulator
+XCODE_SIMULATOR_DIR="$USER_HOME/Library/Developer/CoreSimulator"
 if [ -d "$XCODE_SIMULATOR_DIR" ]; then
     XCODE_SIMULATOR_SIZE=$(get_size "$XCODE_SIMULATOR_DIR")
     warn "  大小: ${XCODE_SIMULATOR_SIZE}"
     info "  路径: ${XCODE_SIMULATOR_DIR}"
     echo ""
 
-    read -p "是否删除所有 Xcode Simulator 数据? (y/N) " -n 1 -r
-    echo
-
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
+    warn "  ⚠️  将抹掉所有模拟器设备内的已安装应用和数据，不可恢复（设备本身保留）"
+    if ask_item "是否抹掉所有 Xcode Simulator 设备的内容和设置?" \
+        "将执行 xcrun simctl erase all（抹掉 ${XCODE_SIMULATOR_DIR} 中所有模拟器设备的内容，${XCODE_SIMULATOR_SIZE}）"; then
         xcrun simctl erase all 2>/dev/null
-        log "  ✓ Xcode Simulator 数据已删除"
-        FREED_SPACE=$((FREED_SPACE + 1))
+        log "  ✓ Xcode Simulator 设备内容已抹掉"
+        CLEANED_ITEMS=$((CLEANED_ITEMS + 1))
     else
         info "  - 跳过"
     fi
@@ -119,22 +140,29 @@ echo -e "${CYAN}3. Android 模拟器${NC}"
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-ANDROID_DIR=~/.android
+ANDROID_DIR="$USER_HOME/.android"
+ANDROID_AVD_DIR="$ANDROID_DIR/avd"
 if [ -d "$ANDROID_DIR" ]; then
     ANDROID_SIZE=$(get_size "$ANDROID_DIR")
     warn "  大小: ${ANDROID_SIZE}"
     info "  路径: ${ANDROID_DIR}"
     echo ""
 
-    read -p "是否删除 Android 模拟器数据? (y/N) " -n 1 -r
-    echo
-
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        rm -rf "$ANDROID_DIR/avd"/*
-        log "  ✓ Android 模拟器数据已删除"
-        FREED_SPACE=$((FREED_SPACE + 1))
+    if [ -d "$ANDROID_AVD_DIR" ] && [ -n "$(find "$ANDROID_AVD_DIR" -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null)" ]; then
+        AVD_SIZE=$(get_size "$ANDROID_AVD_DIR")
+        info "  AVD 镜像目录: ${ANDROID_AVD_DIR} (${AVD_SIZE})"
+        warn "  ⚠️  这不是缓存：将永久删除全部 Android 虚拟设备（AVD）镜像、快照和其中的应用数据，"
+        warn "     不可恢复，之后需在 Android Studio 中重新创建模拟器"
+        if ask_item "确认永久删除全部 AVD 模拟器镜像?" \
+            "将永久删除 ${ANDROID_AVD_DIR} 下全部 AVD 模拟器镜像（${AVD_SIZE}）"; then
+            find "$ANDROID_AVD_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null
+            log "  ✓ 全部 AVD 模拟器镜像已删除"
+            CLEANED_ITEMS=$((CLEANED_ITEMS + 1))
+        else
+            info "  - 跳过"
+        fi
     else
-        info "  - 跳过"
+        info "  没有 AVD 模拟器镜像"
     fi
 else
     info "  未安装 Android 工具"
@@ -173,13 +201,13 @@ echo ""
 info "  扫描中..."
 echo ""
 
-LARGE_FILES=$(find ~ -xdev \
+LARGE_FILES=$(find "$USER_HOME" -xdev \
     -type d \( -name Library -o -name .ollama -o -name node_modules -o -name .Trash -o -name iCloud \) -prune \
     -o -type f -size +1G -print 2>/dev/null | head -10)
 
 if [ -n "$LARGE_FILES" ]; then
     warn "  发现以下大文件:"
-    echo "$LARGE_FILES" | while read file; do
+    echo "$LARGE_FILES" | while IFS= read -r file; do
         size=$(get_size "$file")
         echo "    • ${file}"
         echo "      ${size}"
@@ -199,13 +227,13 @@ echo -e "${CYAN}6. 下载文件夹检查（只报告）${NC}"
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-OLD_DOWNLOADS=$(find ~/Downloads -type f -mtime +30 2>/dev/null | wc -l)
-if [ $OLD_DOWNLOADS -gt 0 ]; then
+OLD_DOWNLOADS=$(find "$USER_HOME/Downloads" -type f -mtime +30 2>/dev/null | wc -l | tr -d ' ')
+if [ "$OLD_DOWNLOADS" -gt 0 ]; then
     warn "  发现 ${OLD_DOWNLOADS} 个30天以上的文件"
 
     echo ""
     info "  10个最老的文件:"
-    find ~/Downloads -type f -mtime +30 -exec ls -lh {} + 2>/dev/null | head -10 | awk '{print "    " $9, "  (" $5 ")"}'
+    find "$USER_HOME/Downloads" -type f -mtime +30 -exec ls -lh {} + 2>/dev/null | head -10 | awk '{print "    " $9, "  (" $5 ")"}'
     echo ""
 
     warn "  [仅报告] 文件年龄不能证明可删；请手动确认用途后移到废纸篓。"
@@ -244,10 +272,10 @@ CACHE_TO_CLEAN=()
 
 for item in "${CACHE_DIRS[@]}"; do
     IFS=':' read -r dir name <<< "$item"
-    CACHE_PATH=~/Library/Caches/$dir
+    CACHE_PATH="$USER_HOME/Library/Caches/$dir"
     if [ -d "$CACHE_PATH" ]; then
         SIZE=$(du -sm "$CACHE_PATH" 2>/dev/null | cut -f1)
-        if [ "$SIZE" -gt 10 ]; then
+        if [ "${SIZE:-0}" -gt 10 ]; then
             SIZE_HUMAN=$(du -sh "$CACHE_PATH" 2>/dev/null | cut -f1)
             warn "  ${name}: ${SIZE_HUMAN}"
             CACHE_TO_CLEAN+=("$dir:$name:$SIZE")
@@ -260,16 +288,18 @@ if [ ${#CACHE_TO_CLEAN[@]} -gt 0 ]; then
     echo ""
     info "  可释放约 $((TOTAL_CACHE_SIZE / 1024))GB 空间"
     echo ""
-    read -p "是否清理以上缓存? (y/N) " -n 1 -r
-    echo
-
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
+    if [[ "$DRY_RUN" -eq 1 ]]; then
         for item in "${CACHE_TO_CLEAN[@]}"; do
             IFS=':' read -r dir name size <<< "$item"
-            rm -rf ~/Library/Caches/$dir/* 2>/dev/null
-            log "  ✓ ${name} 已清理"
+            log "  [预览] 将清空 ${USER_HOME}/Library/Caches/${dir} 的内容（${name}，约 ${size}MB）"
         done
-        FREED_SPACE=$((FREED_SPACE + 1))
+    elif ask_item "是否清理以上缓存?" ""; then
+        for item in "${CACHE_TO_CLEAN[@]}"; do
+            IFS=':' read -r dir name size <<< "$item"
+            find "$USER_HOME/Library/Caches/$dir" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null
+            log "  ✓ ${name} 已清理"
+            CLEANED_ITEMS=$((CLEANED_ITEMS + 1))
+        done
     else
         info "  - 跳过"
     fi
@@ -287,7 +317,7 @@ echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 info "  扫描项目日志..."
-LARGE_LOGS=$(find ~/Documents -path "*/logs/*.log" -size +100M -exec ls -lh {} + 2>/dev/null | awk '{print $5, $9}')
+LARGE_LOGS=$(find "$USER_HOME/Documents" -path "*/logs/*.log" -size +100M -exec ls -lh {} + 2>/dev/null | awk '{print $5, $9}')
 
 if [ -n "$LARGE_LOGS" ]; then
     warn "  发现大型日志文件:"
@@ -309,8 +339,8 @@ echo -e "${CYAN}9. Time Machine 本地快照（只报告）${NC}"
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-SNAPSHOTS=$(tmutil listlocalsnapshots / 2>/dev/null | wc -l)
-if [ $SNAPSHOTS -gt 0 ]; then
+SNAPSHOTS=$(tmutil listlocalsnapshots / 2>/dev/null | wc -l | tr -d ' ')
+if [ "${SNAPSHOTS:-0}" -gt 0 ]; then
     warn "  发现 ${SNAPSHOTS} 个本地快照"
     echo ""
 
@@ -324,11 +354,15 @@ fi
 # ============================================
 echo ""
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-log "✅ 深度存储清理完成！"
+if [[ "$DRY_RUN" -eq 1 ]]; then
+    log "✅ 预览结束：未删除任何文件。确认后可不带 --dry-run 再执行（仍会逐项确认）。"
+else
+    log "✅ 深度存储清理完成！"
+fi
 echo ""
 
-if [ $FREED_SPACE -gt 0 ]; then
-    log "📊 执行了 ${FREED_SPACE} 项清理"
+if [ "$CLEANED_ITEMS" -gt 0 ]; then
+    log "📊 执行了 ${CLEANED_ITEMS} 项清理"
 else
     info "未执行任何清理"
 fi
@@ -348,7 +382,7 @@ cat << EOF
 预期释放空间:
   • Xcode: 5-20GB
   • Xcode Simulator: 10-30GB
-  • Android: 5-15GB
+  • Android AVD 镜像（删除即需重建模拟器）: 5-15GB
   • Docker: 2-10GB
   • 应用缓存: 2-5GB
   • 项目日志: 可能很大（如 100GB+）

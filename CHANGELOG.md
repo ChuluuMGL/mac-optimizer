@@ -7,6 +7,13 @@ All notable changes to Mac Optimizer Skill are tracked here.
 - Preserve protected Agent-directory rows when size scans fail and avoid Top-N broken pipes.
 - Display failed, timed-out, or incomplete Agent-directory sizes and worktree totals as unknown instead of 0K.
 - Add strict-mode and complete-report regressions with isolated fixtures and mocked scan failures.
+- Add `--dry-run` to `03-优化方案/deep-storage-cleanup.sh` (lists the paths and sizes it would delete; no `rm`, no `xcrun simctl`) and `03-优化方案/power-optimization.sh` (lists every `pmset`/`defaults` change; no `sudo`, no setting writes).
+- Make the Android step in `deep-storage-cleanup.sh` state explicitly that it permanently deletes all AVD emulator images, and make the simulator step say it erases all device contents.
+- Remove the author's personal `~/Documents/AI_Collection_Tool` and `~/Documents/Batch` folders from `ai-tools-cleanup.sh`; project `__pycache__` cleanup is now opt-in via `MAC_OPT_PYCACHE_DIRS` (colon-separated).
+- Make advanced cleanup scripts resolve every path from `MAC_OPT_USER_HOME` instead of `~`, so running under `sudo` cannot target `/var/root`.
+- Ollama `*.cache` removal in `ai-tools-cleanup.sh` now defaults to No; the EasyOCR prompt says it deletes all downloaded models.
+- Reclassify `power-optimization.sh` as high risk to match the risk model.
+- Add `tests/advanced_scripts.sh`: dry-run no-change checks against a synthetic `MAC_OPT_USER_HOME` with `sudo`/`pmset`/`xcrun`/`defaults` shims, plus a personal-path guard.
 
 ## 0.2.0 - 2026-10-10
 

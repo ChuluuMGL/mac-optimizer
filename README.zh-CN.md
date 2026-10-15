@@ -150,6 +150,7 @@ python3 ./scripts/package_runtime_skill.py
 - `04-自动化脚本/verify.sh`: 只读验证工具本身是否完整。
 - `04-自动化脚本/rollback.sh`: 恢复本工具修改过的系统偏好。
 - `05-维护计划/monthly.sh`: 月度检查加维护编排。
+- `03-优化方案/`: 进阶脚本，逐项交互确认。`deep-storage-cleanup.sh`、`power-optimization.sh`、`ai-tools-cleanup.sh` 支持 `--dry-run`：只列出将删除的路径和大小、将修改的 `pmset` 设置，不做任何修改。不带 `--dry-run` 时，每个破坏性步骤单独确认（例如 Android 一项会永久删除全部 AVD 模拟器镜像）。项目 `__pycache__` 只清理 `MAC_OPT_PYCACHE_DIRS` 中显式列出的目录。
 - `examples/basic-maintenance/sample-report.md`: 脱敏示例诊断报告。
 - `references/report-review-checklist.md`: 报告审阅和风险判断清单。
 - `references/release-guide.md`: 发版前检查、打 tag 和 Release 上传说明。

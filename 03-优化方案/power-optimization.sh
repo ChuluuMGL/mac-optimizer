@@ -1,10 +1,16 @@
 #!/bin/bash
 # 电源管理优化脚本
 # 用途: 优化 macOS 电源设置，适配台式机/笔记本
-# 用法: ./power-optimization.sh
-# 风险: 🟢 低风险（仅修改电源设置，可逆）
+# 用法: ./power-optimization.sh [--dry-run]
+#       --dry-run 只读取当前设置并列出将执行的 pmset/defaults 修改，不调用 sudo、不写入任何设置。
+# 风险: 🟠 高风险（修改电源/睡眠/休眠策略，需 sudo；可手动恢复但不自动执行）
 
-VERSION="1.0.0"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../lib/common.sh
+source "$SCRIPT_DIR/../lib/common.sh"
+parse_common_args "$@"
+
+VERSION="1.1.0"
 
 # 颜色定义
 RED='\033[0;31m'
@@ -31,8 +37,17 @@ info() {
     echo -e "${BLUE}[INFO]${NC} $1"
 }
 
+# 执行或预览一条设置修改命令。预览模式下只打印，不执行。
+apply_setting() {
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+        log "  [预览] 将执行: $*"
+        return 0
+    fi
+    "$@"
+}
+
 # 欢迎信息
-clear
+clear_screen
 cat << "EOF"
 ╔════════════════════════════════════════╗
 ║   电源管理优化工具 v1.0                 ║
@@ -41,6 +56,10 @@ cat << "EOF"
 EOF
 
 echo ""
+if [[ "$DRY_RUN" -eq 1 ]]; then
+    warn "当前为预览模式（--dry-run）：只列出将修改的电源设置，不调用 sudo、不写入任何设置。"
+    echo ""
+fi
 log "检测设备类型..."
 echo ""
 
@@ -50,7 +69,7 @@ echo ""
 # 检测是否为笔记本（有电池）
 HAS_BATTERY=$(system_profiler SPPowerDataType 2>/dev/null | grep -c "Battery Information")
 
-if [ $HAS_BATTERY -gt 0 ]; then
+if [ "${HAS_BATTERY:-0}" -gt 0 ]; then
     DEVICE_TYPE="MacBook"
     DEVICE_EMOJI="💻"
 else
@@ -90,39 +109,55 @@ if [ "$DEVICE_TYPE" = "台式 Mac" ]; then
     pmset -g | grep hibernatemode || echo "无法读取"
     echo ""
 
-    read -p "是否禁用休眠镜像释放 2GB 空间? (y/N) " -n 1 -r
-    echo
-
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        sudo pmset -a hibernatemode 0
-        sudo rm -f /var/vm/sleepimage
-        log "  ✓ 休眠镜像已禁用，释放 2GB 空间"
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+        info "可选修改（每项执行时都会单独询问）:"
+        info "  • 禁用休眠镜像:"
+        apply_setting sudo pmset -a hibernatemode 0
+        apply_setting sudo rm -f /var/vm/sleepimage
+        info "  • 显示器休眠（二选一）:"
+        apply_setting sudo pmset -c displaysleep 0
+        apply_setting sudo pmset -c displaysleep "<分钟，建议30>"
+        info "  • 禁用系统睡眠:"
+        apply_setting sudo pmset -c sleep 0
     else
-        info "  - 跳过"
-    fi
+        read -p "是否禁用休眠镜像释放 2GB 空间? (y/N) " -n 1 -r
+        echo
 
-    echo ""
-    read -p "是否设置显示器永不休眠? (y/N) " -n 1 -r
-    echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            sudo pmset -a hibernatemode 0
+            sudo rm -f /var/vm/sleepimage
+            log "  ✓ 休眠镜像已禁用，释放 2GB 空间"
+        else
+            info "  - 跳过"
+        fi
 
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        sudo pmset -c displaysleep 0
-        log "  ✓ 显示器不休眠"
-    else
-        read -p "设置显示器休眠时间（分钟，建议30）: " time
-        sudo pmset -c displaysleep $time
-        log "  ✓ 显示器 ${time} 分钟后休眠"
-    fi
+        echo ""
+        read -p "是否设置显示器永不休眠? (y/N) " -n 1 -r
+        echo
 
-    echo ""
-    read -p "是否禁用系统睡眠? (y/N) " -n 1 -r
-    echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            sudo pmset -c displaysleep 0
+            log "  ✓ 显示器不休眠"
+        else
+            read -p "设置显示器休眠时间（分钟，建议30，留空跳过）: " time
+            if [[ "$time" =~ ^[0-9]+$ ]]; then
+                sudo pmset -c displaysleep "$time"
+                log "  ✓ 显示器 ${time} 分钟后休眠"
+            else
+                info "  - 保持显示器休眠设置"
+            fi
+        fi
 
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        sudo pmset -c sleep 0
-        log "  ✓ 系统不休眠"
-    else
-        info "  - 保持系统睡眠设置"
+        echo ""
+        read -p "是否禁用系统睡眠? (y/N) " -n 1 -r
+        echo
+
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            sudo pmset -c sleep 0
+            log "  ✓ 系统不休眠"
+        else
+            info "  - 保持系统睡眠设置"
+        fi
     fi
 
 else
@@ -147,42 +182,55 @@ else
     echo "  2. 省电模式 - 15分钟显示器休眠 + 深度休眠"
     echo "  3. 性能模式 - 显示器不休眠（仅限电源连接）"
     echo ""
-    read -p "请选择 [1-3]: " mode
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+        info "各模式将执行的修改（预览，不选择也不执行）:"
+        info "  1. 平衡模式:"
+        apply_setting sudo pmset -c displaysleep 30 disksleep 10 sleep 0
+        apply_setting sudo pmset -b displaysleep 15 sleep 15
+        info "  2. 省电模式:"
+        apply_setting sudo pmset -c displaysleep 20 sleep 30 hibernatemode 25
+        apply_setting sudo pmset -b displaysleep 15 sleep 15 hibernatemode 25
+        info "  3. 性能模式:"
+        apply_setting sudo pmset -c displaysleep 0 sleep 0
+        apply_setting sudo pmset -b displaysleep 10 sleep 10
+    else
+        read -p "请选择 [1-3]: " mode
 
-    case $mode in
-        1)
-            echo ""
-            log "设置平衡模式..."
-            # 电源连接时
-            sudo pmset -c displaysleep 30 disksleep 10 sleep 0
-            # 电池供电时
-            sudo pmset -b displaysleep 15 sleep 15
-            log "  ✓ 平衡模式已设置"
-            ;;
-        2)
-            echo ""
-            log "设置省电模式..."
-            # 电源连接时
-            sudo pmset -c displaysleep 20 sleep 30 hibernatemode 25
-            # 电池供电时
-            sudo pmset -b displaysleep 15 sleep 15 hibernatemode 25
-            log "  ✓ 省电模式已设置"
-            ;;
-        3)
-            echo ""
-            log "设置性能模式..."
-            # 仅在电源连接时生效
-            sudo pmset -c displaysleep 0 sleep 0
-            # 电池供电时保持安全设置
-            sudo pmset -b displaysleep 10 sleep 10
-            log "  ✓ 性能模式已设置"
-            warn "    仅电源连接时生效"
-            ;;
-        *)
-            error "无效选择"
-            exit 1
-            ;;
-    esac
+        case $mode in
+            1)
+                echo ""
+                log "设置平衡模式..."
+                # 电源连接时
+                sudo pmset -c displaysleep 30 disksleep 10 sleep 0
+                # 电池供电时
+                sudo pmset -b displaysleep 15 sleep 15
+                log "  ✓ 平衡模式已设置"
+                ;;
+            2)
+                echo ""
+                log "设置省电模式..."
+                # 电源连接时
+                sudo pmset -c displaysleep 20 sleep 30 hibernatemode 25
+                # 电池供电时
+                sudo pmset -b displaysleep 15 sleep 15 hibernatemode 25
+                log "  ✓ 省电模式已设置"
+                ;;
+            3)
+                echo ""
+                log "设置性能模式..."
+                # 仅在电源连接时生效
+                sudo pmset -c displaysleep 0 sleep 0
+                # 电池供电时保持安全设置
+                sudo pmset -b displaysleep 10 sleep 10
+                log "  ✓ 性能模式已设置"
+                warn "    仅电源连接时生效"
+                ;;
+            *)
+                error "无效选择"
+                exit 1
+                ;;
+        esac
+    fi
 
     echo ""
     info "💡 MacBook 使用建议:"
@@ -200,23 +248,32 @@ echo -e "${CYAN}通用优化${NC}"
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-# 禁用唤醒时需要密码（仅当使用电源适配器）
-read -p "是否禁用电源连接时唤醒需要密码? (y/N) " -n 1 -r
-echo
-
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    # 仅设置电源适配器模式
-    defaults write com.apple.screensaver askForPassword -int 1
-    defaults write com.apple.screensaver askForPasswordDelay -int 0
-    log "  ✓ 密码设置已更新"
+# 唤醒后立即要求密码（写入 askForPassword=1、askForPasswordDelay=0，属于加强而非放宽安全设置）
+if [[ "$DRY_RUN" -eq 1 ]]; then
+    info "可选修改: 唤醒后立即要求密码"
+    apply_setting defaults write com.apple.screensaver askForPassword -int 1
+    apply_setting defaults write com.apple.screensaver askForPasswordDelay -int 0
 else
-    info "  - 保持安全设置"
+    read -p "是否设置唤醒后立即要求密码? (y/N) " -n 1 -r
+    echo
+
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        defaults write com.apple.screensaver askForPassword -int 1
+        defaults write com.apple.screensaver askForPasswordDelay -int 0
+        log "  ✓ 密码设置已更新"
+    else
+        info "  - 保持当前密码设置"
+    fi
 fi
 
 # ============================================
 # 完成
 # ============================================
 echo ""
+if [[ "$DRY_RUN" -eq 1 ]]; then
+    log "✅ 预览结束：未修改任何电源设置。确认后可不带 --dry-run 再执行（仍会逐项询问）。"
+    exit 0
+fi
 log "✅ 电源优化完成！"
 echo ""
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
