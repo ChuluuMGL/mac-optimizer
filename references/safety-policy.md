@@ -39,8 +39,10 @@ High-risk items may appear in reports as manual review recommendations only.
 
 ## Advanced Scripts (`03-优化方案/`)
 
-- `deep-storage-cleanup.sh`, `power-optimization.sh`, and `ai-tools-cleanup.sh` accept `--dry-run`. In that mode they report the paths, sizes, and `pmset`/`defaults` changes they would make, and they make zero changes: no `rm`, no `sudo`, no `xcrun simctl`, and no setting writes.
+- `deep-storage-cleanup.sh`, `power-optimization.sh`, `ai-tools-cleanup.sh`, and `system-services-optimization.sh` accept `--dry-run`. In that mode they report the paths, sizes, and `pmset`/`defaults` changes they would make, and they make zero changes: no `rm`, no `sudo`, no `xcrun simctl`, and no setting writes.
 - Without `--dry-run`, each destructive step asks for its own confirmation. Prompts must name what is permanently lost. For example, Android AVD removal deletes whole emulator images, not cache.
+- `system-services-optimization.sh` asks before every `defaults`, `launchctl`, `killall`, or `tmutil` change, and each answer defaults to No. `--yes` never auto-approves these steps, and `--safe` skips them.
+- Automatic flows (`one-click`, `quick`, `monthly`) must forward `--dry-run` and must not call `03-优化方案/` scripts.
 - All paths derive from `MAC_OPT_USER_HOME`, never a bare `~`, so running under `sudo` cannot target `/var/root`.
 - Scripts must not hard-code personal project folders. Project-level cleanup, such as `__pycache__`, runs only on directories the user lists in `MAC_OPT_PYCACHE_DIRS`.
 

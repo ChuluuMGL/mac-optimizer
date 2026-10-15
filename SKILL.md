@@ -73,9 +73,10 @@ bash ./05-维护计划/monthly.sh --dry-run
 bash ./03-优化方案/deep-storage-cleanup.sh --dry-run
 bash ./03-优化方案/ai-tools-cleanup.sh --dry-run
 bash ./03-优化方案/power-optimization.sh --dry-run
+bash ./03-优化方案/system-services-optimization.sh --dry-run
 ```
 
-Advanced scripts under `03-优化方案/` are interactive and per-item. Run them with `--dry-run` first and show the user the listed paths, sizes, and `pmset` changes. Point out destructive items explicitly. The Android step permanently deletes all AVD emulator images, and the simulator step erases all simulator device contents.
+Advanced scripts under `03-优化方案/` are interactive and per-item. Run them with `--dry-run` first and show the user the listed paths, sizes, and `pmset` changes. Point out destructive items explicitly. The Android step permanently deletes all AVD emulator images, the simulator step erases all simulator device contents, and the Time Machine step in `system-services-optimization.sh` permanently deletes local snapshots.
 
 ## Common Mistakes
 

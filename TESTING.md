@@ -21,7 +21,7 @@ The suite validates:
 - Documentation references current script names.
 - Agent directory failures/timeouts render as unknown, retain protected paths, and mark partial totals as incomplete.
 - Large child listings finish under strict Bash without truncation-related SIGPIPE.
-- Advanced scripts (`deep-storage-cleanup.sh`, `power-optimization.sh`, `ai-tools-cleanup.sh`) make zero changes with `--dry-run`. This is checked against a synthetic `MAC_OPT_USER_HOME` with `sudo`/`pmset`/`xcrun`/`defaults` shims. The confirmed runs delete only under `MAC_OPT_USER_HOME`, and no personal project paths are hard-coded.
+- Advanced scripts (`deep-storage-cleanup.sh`, `power-optimization.sh`, `ai-tools-cleanup.sh`, `system-services-optimization.sh`) make zero changes with `--dry-run`. `system-services-optimization.sh` defaults every step to No, including under `--yes`. The `one-click`, `quick`, and `monthly` dry-runs change nothing even with every opt-in flag set. This is checked against a synthetic `MAC_OPT_USER_HOME` with `sudo`/`pmset`/`xcrun`/`defaults` shims. The confirmed runs delete only under `MAC_OPT_USER_HOME`, and no personal project paths are hard-coded.
 - Shell syntax is valid on system bash.
 - The verification script runs without making cleanup changes.
 

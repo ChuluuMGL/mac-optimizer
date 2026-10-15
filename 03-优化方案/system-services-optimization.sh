@@ -1,21 +1,22 @@
 #!/bin/bash
 # 系统服务优化脚本
-# 用途: 优化 macOS 系统服务，禁用不必要的功能
-# 用法: ./system-services-optimization.sh
-# 风险: 🟡 中风险（修改系统设置，可逆）
+# 用途: 逐项修改 macOS 系统服务设置（Siri、Spotlight 建议、诊断数据、Time Machine 本地快照等）
+# 用法: ./system-services-optimization.sh [--dry-run]
+#       --dry-run 只列出每一项将执行的命令/设置，不调用 sudo、不写入任何设置、不删除快照。
+#       每一项都单独询问且默认 No；--yes 不会自动批准这些高风险项；--safe 下不做任何修改。
+# 风险: 🟠 高风险（修改系统服务与安全相关设置；删除 Time Machine 本地快照不可恢复）
 
 set -e
 
-VERSION="1.0.0"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../lib/common.sh
+source "$SCRIPT_DIR/../lib/common.sh"
+parse_common_args "$@"
 
-# 颜色定义
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+VERSION="1.1.0"
+CHANGED_ITEMS=0
 
-# 日志函数
+# 日志函数（带时间戳）
 log() {
     echo -e "${GREEN}[$(date '+%H:%M:%S')]${NC} $1"
 }
@@ -32,197 +33,202 @@ info() {
     echo -e "${BLUE}[$(date '+%H:%M:%S')]${NC} ℹ️  $1"
 }
 
+# 逐项确认，默认 No。预览/安全模式下只列出命令并返回 1（不执行）。
+# --yes 不会自动批准：这些都是高风险的系统设置修改。
+# 用法: ask_step "<提示>" "<命令 1>" ["<命令 2>" ...]
+ask_step() {
+    local prompt="$1"
+    shift
+    local cmd
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+        for cmd in "$@"; do
+            log "  [预览] 将执行: ${cmd}"
+        done
+        return 1
+    fi
+    if [[ "$SAFE_MODE" -eq 1 ]]; then
+        info "  - 安全模式（--safe）下不修改系统设置，跳过"
+        return 1
+    fi
+    info "  确认后将执行:"
+    for cmd in "$@"; do
+        echo "    ${cmd}"
+    done
+    REPLY=""
+    read -p "${prompt} (y/N) " -n 1 -r || true
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        CHANGED_ITEMS=$((CHANGED_ITEMS + 1))
+        return 0
+    fi
+    info "  - 跳过（保持当前设置）"
+    return 1
+}
+
+# 经 sudo 运行时 defaults 会写入 root 的偏好而不是当前用户的，直接拒绝。
+if [[ -n "${SUDO_USER:-}" && "$EUID" -eq 0 && "$DRY_RUN" -ne 1 ]]; then
+    error "请不要用 sudo 运行本脚本；需要管理员权限的单项会在确认后单独调用 sudo。"
+    exit 1
+fi
+
 # 欢迎信息
-clear
+clear_screen
 cat << "EOF"
 ╔════════════════════════════════════════╗
-║   系统服务优化工具 v1.0                 ║
-║   禁用不必要服务 释放系统资源          ║
+║   系统服务优化工具 v1.1                 ║
+║   逐项确认修改系统服务设置              ║
 ╚════════════════════════════════════════╝
 EOF
 
 echo ""
-log "开始优化系统服务..."
+log "开始检查系统服务设置..."
 echo ""
-warn "⚠️  以下操作将修改系统设置"
-warn "   所有操作都可以撤销（见恢复脚本）"
+if [[ "$DRY_RUN" -eq 1 ]]; then
+    warn "当前为预览模式（--dry-run）：只列出将执行的命令，不调用 sudo、不修改任何设置。"
+else
+    warn "以下每一项都会单独询问，默认 No。"
+    warn "Siri/Spotlight/崩溃报告/自动更新设置可用 04-自动化脚本/rollback.sh 恢复；"
+    warn "删除的 Time Machine 本地快照无法恢复。"
+fi
 echo ""
 
 # ============================================
-# 1. Siri 优化
+# 1. Siri
 # ============================================
-log "[1/6] Siri 服务优化..."
-
+log "[1/7] Siri"
 echo ""
-info "Siri 会占用 CPU 和内存资源"
-echo "如果很少使用 Siri，建议禁用"
-echo ""
-read -p "是否禁用 Siri? (y/N) " -n 1 -r
-echo
-
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    # 禁用 Siri
+info "如果很少使用 Siri，可以关闭（同时关闭基于 Siri 的 Spotlight 建议）"
+if ask_step "是否关闭 Siri 和 Spotlight 建议?" \
+    "defaults write com.apple.Siri StatusMenuVisible -bool false" \
+    "defaults write com.apple.Siri VoiceTriggerUserEnabled -bool false" \
+    "defaults write com.apple.Siri TypeToSiriEnabled -bool false" \
+    "defaults write com.apple.Spotlight SuggestionsLookup -bool false"; then
     defaults write com.apple.Siri StatusMenuVisible -bool false
     defaults write com.apple.Siri VoiceTriggerUserEnabled -bool false
     defaults write com.apple.Siri TypeToSiriEnabled -bool false
-
-    # 禁用 Spotlight 建议（基于 Siri）
     defaults write com.apple.Spotlight SuggestionsLookup -bool false
-
-    log "  ✓ Siri 已禁用"
-    warn "    需要重启生效"
-else
-    info "  - 保留 Siri"
+    log "  ✓ Siri 已关闭（需要注销或重启后生效）"
 fi
+echo ""
 
 # ============================================
-# 2. Spotlight 优化
+# 2. Spotlight 建议
 # ============================================
-log "[2/6] Spotlight 优化..."
-
+log "[2/7] Spotlight 建议"
 echo ""
-info "Spotlight 索引会占用磁盘和 CPU"
-info "可以禁用不必要的索引类型"
-echo ""
-read -p "是否优化 Spotlight? (y/N) " -n 1 -r
-echo
-
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    # 禁用 Spotlight 建议
+info "关闭 Spotlight 在线建议（不影响本地文件索引）"
+if ask_step "是否关闭 Spotlight 在线建议并重启 Spotlight 菜单?" \
+    "defaults write com.apple.Spotlight SuggestionsLookup -bool false" \
+    "killall Spotlight"; then
     defaults write com.apple.Spotlight SuggestionsLookup -bool false
-
-    # 禁用 Spotlight 网络搜索
-    defaults write com.apple.Spotlight AllowedTypes -array-add "MDSpotlightGenericFileType"
-
-    # 重启 Spotlight
-    killall Spotlight 2>/dev/null
-
-    log "  ✓ Spotlight 已优化"
-else
-    info "  - 保留 Spotlight 设置"
+    killall Spotlight 2>/dev/null || true
+    log "  ✓ Spotlight 在线建议已关闭"
 fi
+echo ""
 
 # ============================================
-# 3. Analytics 禁用
+# 3. 诊断数据与崩溃报告
 # ============================================
-log "[3/6] 禁用发送诊断数据..."
-
+log "[3/7] 诊断数据与崩溃报告"
 echo ""
-info "macOS 会发送使用数据和诊断信息给 Apple"
-info "禁用可以保护隐私并减少网络流量"
-echo ""
-read -p "是否禁用数据发送? (y/N) " -n 1 -r
-echo
-
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    # 禁用诊断数据提交
-    sudo launchctl unload -w /System/Library/LaunchDaemons/com.apple.SubmitDiagInfo.plist 2>/dev/null
-
-    # 禁用崩溃报告
+info "停止向 Apple 提交诊断数据，并关闭崩溃报告弹窗"
+warn "  卸载系统 LaunchDaemon 需要 sudo；开启 SIP 的系统上可能失败"
+if ask_step "是否停止提交诊断数据并关闭崩溃报告弹窗?" \
+    "sudo launchctl unload -w /System/Library/LaunchDaemons/com.apple.SubmitDiagInfo.plist" \
+    "defaults write com.apple.CrashReporter DialogType none"; then
+    sudo launchctl unload -w /System/Library/LaunchDaemons/com.apple.SubmitDiagInfo.plist 2>/dev/null \
+        || warn "  launchctl unload 未完成（可能受 SIP 保护），已跳过"
     defaults write com.apple.CrashReporter DialogType none
-
-    # 禁用自动更新检查
-    defaults write com.apple.SoftwareUpdate AutomaticCheckEnabled -bool false
-
-    log "  ✓ 诊断数据发送已禁用"
-else
-    info "  - 保留数据发送"
+    log "  ✓ 已处理诊断数据和崩溃报告设置"
 fi
-
-# ============================================
-# 4. Time Machine 本地快照优化
-# ============================================
-log "[4/6] Time Machine 本地快照优化..."
-
-echo ""
-info "Time Machine 会创建本地快照，占用磁盘空间"
-info "如果使用外置备份，可以删除本地快照"
 echo ""
 
-# 列出快照
-SNAPSHOTS=$(tmutil listlocalsnapshots / 2>/dev/null | wc -l)
-if [ $SNAPSHOTS -gt 0 ]; then
+# ============================================
+# 4. 自动检查软件更新
+# ============================================
+log "[4/7] 自动检查软件更新"
+echo ""
+warn "  关闭后不会自动发现 macOS 安全更新，不建议关闭"
+if ask_step "是否关闭自动检查软件更新（不推荐）?" \
+    "defaults write com.apple.SoftwareUpdate AutomaticCheckEnabled -bool false"; then
+    defaults write com.apple.SoftwareUpdate AutomaticCheckEnabled -bool false
+    log "  ✓ 自动检查更新已关闭；请定期手动检查更新"
+fi
+echo ""
+
+# ============================================
+# 5. Time Machine 本地快照
+# ============================================
+log "[5/7] Time Machine 本地快照"
+echo ""
+SNAPSHOTS=$(tmutil listlocalsnapshots / 2>/dev/null | grep -c 'com.apple' || true)
+if [ "${SNAPSHOTS:-0}" -gt 0 ]; then
     warn "  发现 ${SNAPSHOTS} 个本地快照"
-    tmutil listlocalsnapshots / 2>/dev/null | head -5
-    echo ""
-
-    read -p "是否删除所有本地快照? (y/N) " -n 1 -r
-    echo
-
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        sudo tmutil deletelocalsnapshots / 2>/dev/null
-        log "  ✓ 本地快照已删除"
-    else
-        info "  - 保留本地快照"
+    tmutil listlocalsnapshots / 2>/dev/null | head -5 || true
+    warn "  ⚠️  删除后无法用这些快照恢复文件，且不可撤销；macOS 会在空间不足时自动清理它们"
+    if ask_step "确认永久删除全部 Time Machine 本地快照?" \
+        "sudo tmutil deletelocalsnapshots /"; then
+        if sudo tmutil deletelocalsnapshots / 2>/dev/null; then
+            log "  ✓ 本地快照已删除"
+        else
+            warn "  删除本地快照未完成，已跳过"
+        fi
     fi
 else
     info "  - 没有本地快照"
 fi
-
-# ============================================
-# 5. iCloud 同步优化
-# ============================================
-log "[5/6] iCloud 同步优化..."
-
-echo ""
-info "iCloud 同步会占用网络和磁盘资源"
-info "可以禁用不需要的同步类型"
 echo ""
 
-read -p "是否显示 iCloud 同步建议? (y/N) " -n 1 -r
-echo
+# ============================================
+# 6. iCloud 同步（仅建议，不修改）
+# ============================================
+log "[6/7] iCloud 同步（仅建议，不修改设置）"
+echo ""
+info "  系统设置 → Apple ID → iCloud，可按需关闭："
+info "  - iCloud Drive（如果不需要）"
+info "  - 照片（如果不需要）"
+info "  - 钥匙串（建议保留）"
+echo ""
 
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    info "  系统设置 → Apple ID → iCloud"
-    info "  根据需要禁用："
-    info "  - iCloud Drive（如果不需要）"
-    info "  - 照片（如果不需要）"
-    info "  - 钥匙串（建议保留）"
-else
-    info "  - 跳过"
+# ============================================
+# 7. Dashboard（旧版 macOS）
+# ============================================
+log "[7/7] Dashboard（仅旧版 macOS 有效）"
+echo ""
+if ask_step "是否关闭 Dashboard?" \
+    "defaults write com.apple.dashboard mcx-disabled -bool true"; then
+    defaults write com.apple.dashboard mcx-disabled -bool true
+    log "  ✓ Dashboard 已关闭"
 fi
-
-# ============================================
-# 6. 仪表盘小组件优化
-# ============================================
-log "[6/6] 仪表盘小组件优化..."
-
-echo ""
-info "禁用不必要的仪表盘小组件可以节省资源"
-echo ""
-
-# 禁用 Dashboard（旧版 macOS）
-defaults write com.apple.dashboard mcx-disabled -bool true
-
-log "  ✓ Dashboard 已优化"
 
 # ============================================
 # 完成
 # ============================================
 echo ""
-log "✅ 系统服务优化完成！"
+if [[ "$DRY_RUN" -eq 1 ]]; then
+    log "✅ 预览结束：未修改任何设置。确认后可不带 --dry-run 再执行（仍会逐项询问，默认 No）。"
+    exit 0
+fi
+if [ "$CHANGED_ITEMS" -gt 0 ]; then
+    log "✅ 已确认并执行 ${CHANGED_ITEMS} 项修改"
+else
+    info "未修改任何设置"
+fi
 echo ""
 cat << EOF
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 💡 恢复方法
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-如果需要恢复设置，请执行:
+Siri、Spotlight 建议、崩溃报告弹窗、自动更新检查:
+   bash ./04-自动化脚本/rollback.sh
 
-1. Siri:
-   defaults delete com.apple.Siri StatusMenuVisible
-   defaults delete com.apple.Siri VoiceTriggerUserEnabled
-   killall Spotlight
+诊断数据提交:
+   sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.SubmitDiagInfo.plist
 
-2. Spotlight:
-   defaults delete com.apple.Spotlight SuggestionsLookup
-   killall Spotlight
+Dashboard:
+   defaults delete com.apple.dashboard mcx-disabled
 
-3. 重启 Mac 使所有更改生效
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-⚠️  注意:
-  • 部分设置需要重启生效
-  • 建议使用几天，观察效果
-  • 如有问题可随时恢复
+Time Machine 本地快照删除后无法恢复。
+部分设置需要注销或重启后生效。
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 EOF

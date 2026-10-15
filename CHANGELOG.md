@@ -13,6 +13,14 @@ All notable changes to Mac Optimizer Skill are tracked here.
 - Make advanced cleanup scripts resolve every path from `MAC_OPT_USER_HOME` instead of `~`, so running under `sudo` cannot target `/var/root`.
 - Ollama `*.cache` removal in `ai-tools-cleanup.sh` now defaults to No; the EasyOCR prompt says it deletes all downloaded models.
 - Reclassify `power-optimization.sh` as high risk to match the risk model.
+- Rework `03-优化方案/system-services-optimization.sh`:
+  - Add `--dry-run`, which lists every `defaults`, `launchctl`, `killall`, and `sudo tmutil` command without running any of them.
+  - Every setting change and the Time Machine snapshot deletion now ask for their own confirmation and default to No. `--yes` does not auto-approve them, and `--safe` skips them.
+  - The script previously disabled Dashboard without asking; that step now asks too.
+  - Turning off automatic update checks is now a separate step and is labelled not recommended.
+  - Snapshot deletion is labelled permanent.
+  - The script is reclassified as high risk, refuses to run under `sudo` because user preferences would be written for root, and points to `rollback.sh` for restoring settings.
+- Audit `one-click`, `quick`, and `monthly`: all three forward `--dry-run` and route every change through the shared preview helpers, and none of them call `03-优化方案/` scripts. Regression tests now cover this with every opt-in flag set.
 - Add `tests/advanced_scripts.sh`: dry-run no-change checks against a synthetic `MAC_OPT_USER_HOME` with `sudo`/`pmset`/`xcrun`/`defaults` shims, plus a personal-path guard.
 
 ## 0.2.0 - 2026-10-10

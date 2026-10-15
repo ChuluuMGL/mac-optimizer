@@ -15,13 +15,14 @@ pass() { printf 'PASS: %s\n' "$1"; }
 DEEP="03-优化方案/deep-storage-cleanup.sh"
 POWER="03-优化方案/power-optimization.sh"
 AI="03-优化方案/ai-tools-cleanup.sh"
+SVC="03-优化方案/system-services-optimization.sh"
 
 # --- PATH shims: record every call; never escalate or change settings. ---
 bin="$tmp/bin"
 calls="$tmp/calls.log"
 mkdir -p "$bin"
 : > "$calls"
-for cmd in sudo defaults xcrun tmutil pip conda ollama docker; do
+for cmd in sudo defaults xcrun pip pip3 conda ollama docker launchctl killall brew npm dscacheutil; do
   cat > "$bin/$cmd" <<EOF
 #!/bin/sh
 printf '%s %s\n' "$cmd" "\$*" >> "$calls"
@@ -33,6 +34,14 @@ cat > "$bin/pmset" <<EOF
 printf 'pmset %s\n' "\$*" >> "$calls"
 if [ "\$1" = "-g" ]; then
   printf ' hibernatemode 3\n sleep 1\n displaysleep 10\n disksleep 10\n'
+fi
+exit 0
+EOF
+cat > "$bin/tmutil" <<EOF
+#!/bin/sh
+printf 'tmutil %s\n' "\$*" >> "$calls"
+if [ "\$1" = "listlocalsnapshots" ]; then
+  printf 'com.apple.TimeMachine.2026-01-01-000000.local\n'
 fi
 exit 0
 EOF
@@ -85,7 +94,7 @@ printf 'sentinel\n' > "$tmp/realhome/sentinel"
 mkdir -p "$tmp/realhome/.cursor/Cache" && printf 'x\n' > "$tmp/realhome/.cursor/Cache/keep"
 
 # 1. Help exposes --dry-run for the advanced scripts.
-for s in "$DEEP" "$POWER" "$AI"; do
+for s in "$DEEP" "$POWER" "$AI" "$SVC"; do
   if [[ "$(bash "$s" --help 2>&1)" == *"--dry-run"* ]]; then
     pass "$s --help documents --dry-run"
   else
@@ -179,6 +188,78 @@ else
   fail "ai-tools must delete only under MAC_OPT_USER_HOME and opt-in pycache dirs"
 fi
 
+# 6b. system-services --dry-run lists every change and makes none.
+: > "$calls"
+out="$(run_script "$tmp/realhome" bash "$SVC" --dry-run </dev/null 2>&1)" || { printf '%s\n' "$out"; fail "system-services --dry-run exits 0"; }
+if ! grep -vE '^tmutil listlocalsnapshots' "$calls" | grep -q . \
+  && [[ "$out" == *"[预览] 将执行: sudo tmutil deletelocalsnapshots /"* ]] \
+  && [[ "$out" == *"[预览] 将执行: sudo launchctl unload"* ]] \
+  && [[ "$out" == *"[预览] 将执行: defaults write com.apple.Siri"* ]] \
+  && [[ "$out" == *"[预览] 将执行: defaults write com.apple.dashboard"* ]] \
+  && [[ "$out" == *"未修改任何设置"* ]]; then
+  pass "system-services --dry-run lists commands and changes nothing"
+else
+  printf '%s\n' "$out"; cat "$calls"
+  fail "system-services --dry-run must not call sudo/defaults/launchctl/killall"
+fi
+
+# 6c. system-services defaults every step to No: empty answers, and --yes,
+#     must not change anything (--yes does not auto-approve high-risk steps).
+for extra in "" "--yes" "--safe --yes"; do
+  : > "$calls"
+  # shellcheck disable=SC2086
+  run_script "$tmp/realhome" bash "$SVC" $extra >"$tmp/svc.out" 2>&1 <<<'' || true
+  if ! grep -vE '^tmutil listlocalsnapshots' "$calls" | grep -q . \
+    && grep -q '未修改任何设置' "$tmp/svc.out"; then
+    pass "system-services makes no changes without explicit y (args: ${extra:-none})"
+  else
+    cat "$tmp/svc.out"; cat "$calls"
+    fail "system-services must default every step to No (args: ${extra:-none})"
+  fi
+done
+
+# 6d. Answering y runs only the confirmed step (here: Siri only).
+: > "$calls"
+run_script "$tmp/realhome" bash "$SVC" >"$tmp/svc.out" 2>&1 <<<'ynnnnn' || true
+if grep -q '^defaults write com.apple.Siri StatusMenuVisible' "$calls" \
+  && ! grep -qE '^(sudo|killall)|^defaults write com.apple.(dashboard|SoftwareUpdate|CrashReporter)' "$calls"; then
+  pass "system-services runs only individually confirmed steps"
+else
+  cat "$tmp/svc.out"; cat "$calls"
+  fail "system-services must run only confirmed steps"
+fi
+
+# 6e. Automatic entrypoints forward --dry-run and never invoke cleanup or
+#     setting commands, even with every opt-in flag present.
+diag="$tmp/autodata"
+mkdir -p "$diag"
+printf '{"date":"test","score":90}\n' > "$diag/check-latest.json"
+for cmd in sysctl vm_stat system_profiler mdfind sw_vers; do
+  [[ -e "$bin/$cmd" ]] || printf '#!/bin/sh\nexit 0\n' > "$bin/$cmd"
+  chmod +x "$bin/$cmd"
+done
+for entry in "04-自动化脚本/one-click-optimization.sh" "04-自动化脚本/quick-optimization.sh" "05-维护计划/monthly.sh"; do
+  h="$tmp/auto-home"
+  rm -rf "$h"; make_home "$h"
+  mkdir -p "$h/Library/Caches/Homebrew" "$h/Library/Logs"
+  printf 'x\n' > "$h/Library/Caches/Homebrew/c"
+  printf 'log\n' > "$h/Library/Logs/v2ray-core.log"
+  before="$(snapshot "$h")"
+  : > "$calls"
+  HOME="$h" MAC_OPT_USER_HOME="$h" MAC_OPT_LOG_DIR="$tmp/logs" MAC_OPT_DATA_DIR="$diag" \
+    MAC_OPT_TMP_DIR="$tmp/auto-tmp" MAC_OPT_SYSTEM_LIB="$tmp/auto-syslib" \
+    MAC_OPT_NO_CLEAR=1 PATH="$SHIM_PATH" \
+    bash "$entry" --dry-run --tune-ui --flush-dns --truncate-v2ray-log </dev/null >"$tmp/auto.out" 2>&1 || true
+  after="$(snapshot "$h")"
+  if [[ "$before" == "$after" ]] \
+    && ! grep -qE '^(sudo|defaults|killall|brew|npm|pip|pip3|dscacheutil|launchctl unload|tmutil delete|xcrun)' "$calls"; then
+    pass "$entry --dry-run forwards preview mode and changes nothing"
+  else
+    cat "$tmp/auto.out"; cat "$calls"
+    fail "$entry --dry-run must not bypass preview mode"
+  fi
+done
+
 # 7. No author-specific personal paths remain in shell scripts.
 if grep -rnE 'AI_Collection_Tool|Documents/Batch' --include='*.sh' 01-检查脚本 03-优化方案 04-自动化脚本 05-维护计划 lib scripts; then
   fail "shell scripts must not hard-code personal project folders"
@@ -187,7 +268,7 @@ else
 fi
 
 # 8. Advanced cleanup scripts delete via MAC_OPT_USER_HOME, never a bare ~.
-if grep -nE '(^|[[:space:]=(])~/' "$DEEP" "$AI" | grep -vE '^\S+:[0-9]+:\s*#|echo|info|log|warn'; then
+if grep -nE '(^|[[:space:]=(])~/' "$DEEP" "$AI" "$SVC" | grep -vE '^\S+:[0-9]+:\s*#|echo|info|log|warn'; then
   fail "advanced cleanup scripts must use MAC_OPT_USER_HOME instead of ~"
 else
   pass "advanced cleanup scripts avoid bare ~ paths"

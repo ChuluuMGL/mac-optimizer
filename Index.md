@@ -22,7 +22,7 @@
 - `03-优化方案/deep-storage-cleanup.sh`: 开发工具和大文件逐项清理（支持 `--dry-run`；Android 一项会永久删除全部 AVD 模拟器镜像）。
 - `03-优化方案/power-optimization.sh`: 电源设置优化（高风险，支持 `--dry-run`）。
 - `03-优化方案/startup-manager.sh`: 启动项检查。
-- `03-优化方案/system-services-optimization.sh`: 系统服务设置优化。
+- `03-优化方案/system-services-optimization.sh`: 系统服务设置优化（高风险，支持 `--dry-run`，每项默认 No）。
 
 ## 使用建议
 
